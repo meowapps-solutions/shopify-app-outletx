@@ -9,9 +9,14 @@ export function AppNavMenu({ tabs = [] }: { tabs: { content: string, url: string
     return null;
   }
 
-  const tabMarkup = tabs.map((tab, index) => (
-    <a href={tab.url} rel={index === 0 ? 'home' : ''} onClick={(e) => { e.preventDefault(); navigate(tab.url); }}>{tab.content}</a>
-  ));
+  const sortedMatchingTabs = tabs.filter(tab => {
+    return url.pathname.startsWith(tab.url);
+  }).sort((a, b) => b.url.split('/').length - a.url.split('/').length);
+
+  const tabMarkup = tabs.map((tab, index) => {
+    const href = sortedMatchingTabs.length > 0 && sortedMatchingTabs[0].url === tab.url ? url.pathname : tab.url;
+    return <a href={href} rel={index === 0 ? 'home' : ''} onClick={(e) => { e.preventDefault(); navigate(tab.url); }}>{tab.content}</a>;
+  });
 
   return (
     <NavMenu>
