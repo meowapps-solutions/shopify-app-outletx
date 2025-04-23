@@ -1,5 +1,7 @@
-import { createContext, useContext, useEffect, useMemo } from 'react';
+import { createContext, useContext, useEffect } from 'react';
 import { ShopifyGlobal, useAppBridge } from '@shopify/app-bridge-react';
+import { Box, Icon, InlineStack } from '@shopify/polaris';
+import { RefreshIcon } from '@shopify/polaris-icons';
 import { useAppNavigate } from '../hooks/app-navigate';
 import useFirestore from '../hooks/use-firestore';
 
@@ -19,12 +21,9 @@ export const GlobalDataProvider = ({ children }: { children: React.ReactNode }) 
   if (!shop) { throw new Error('shop is not defined'); }
 
   const firestore = useFirestore();
-  const isLoading = useMemo(() => firestore.loading, [firestore.loading]);
 
-  useEffect(() => {
-    shopify.loading(isLoading);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { shopify.loading(firestore.isLoading); }, [firestore.isLoading]);
 
   return (
     <GlobalDataContext.Provider
@@ -36,6 +35,14 @@ export const GlobalDataProvider = ({ children }: { children: React.ReactNode }) 
       }}
     >
       {children}
+
+      {firestore.isSyncing && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000 }}>
+          <InlineStack gap='200'><div style={{ marginLeft: 'auto' }}><Icon source={RefreshIcon} tone='base' /></div>Syncing...</InlineStack>
+        </div>
+      )}
+
+      <Box paddingBlockStart="500" />
     </GlobalDataContext.Provider>
   );
 };

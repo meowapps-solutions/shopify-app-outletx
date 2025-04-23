@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFetch } from './http-client';
 import { DocumentSnapshot } from '../../../functions/src/api/app/firestore/types';
 
@@ -8,54 +8,121 @@ export enum CollectionName {
 
 export default function useFirestore() {
   const fetch = useFetch();
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setLoading] = useState(false);
+  const [isSyncing, setSyncing] = useState(false);
+  const [localStorage, setLocalStorage] = useState<{ [key: string]: object }>({});
+  const lastRequestRef = useRef(Promise.resolve());
+
+  const sequentialFetch = <T>(requestFn: () => Promise<T>): Promise<T> => {
+    const newPromise = lastRequestRef.current.then(async () => {
+      setSyncing(true);
+      try {
+        return await requestFn();
+      } finally {
+        setSyncing(false);
+      }
+    });
+
+    lastRequestRef.current = newPromise as Promise<void>;;
+    return newPromise;
+  };
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = 'An operation is in progress. Are you sure you want to leave?';
+      return 'An operation is in progress. Are you sure you want to leave?';
+    };
+
+    if (isSyncing) {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isSyncing]);
 
   return {
-    loading,
+    isLoading,
+    isSyncing: isLoading === false && isSyncing,
     async create<T>(collectionName: CollectionName, data: Omit<T, keyof DocumentSnapshot>) {
+      const request = sequentialFetch(async () => {
+        return await fetch(`/api/app/firestore/${collectionName}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        }).then(async (response) => {
+          if (!response.ok) {
+            throw new Error('Failed to create document');
+          }
+          const json: DocumentSnapshot = await response.json();
+          const cacheKey = `${collectionName}-${json.id}`;
+          setLocalStorage((prev) => ({ ...prev, [cacheKey]: json }));
+          return json;
+        });
+      });
+
       setLoading(true);
-      return await fetch(`/api/app/firestore/${collectionName}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }).then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to create document');
-        }
-        return response.json();
-      }).finally(() => setLoading(false));
+      return await request.finally(() => setLoading(false)) as T;
     },
-    async read(collectionName: CollectionName, id: string) {
+    async read<T>(collectionName: CollectionName, id: string) {
+      const request = sequentialFetch(async () => {
+        return await fetch(`/api/app/firestore/${collectionName}/${id}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        }).then(async (response) => {
+          if (!response.ok) {
+            throw new Error('Failed to create document');
+          }
+          const json: DocumentSnapshot = await response.json();
+          setLocalStorage((prev) => ({ ...prev, [cacheKey]: json }));
+          return json;
+        });
+      });
+
+      const cacheKey = `${collectionName}-${id}`;
+      const cachedData = localStorage[cacheKey];
+      if (cachedData) { return cachedData as T; }
+
       setLoading(true);
-      return await fetch(`/api/app/firestore/${collectionName}/${id}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      }).then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to create document');
-        }
-        return response.json();
-      }).finally(() => setLoading(false));
+      return await request.finally(() => setLoading(false)) as T;
     },
     async update<T>(collectionName: CollectionName, id: string, data: Partial<T>) {
+      const request = sequentialFetch(async () => {
+        return await fetch(`/api/app/firestore/${collectionName}/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        }).then(async (response) => {
+          if (!response.ok) {
+            throw new Error('Failed to create document');
+          }
+          const json: DocumentSnapshot = await response.json();
+          const cacheKey = `${collectionName}-${id}`;
+          setLocalStorage((prev) => ({ ...prev, [cacheKey]: { ...prev[cacheKey], ...json } }));
+          return json;
+        });
+      });
+
+      const cacheKey = `${collectionName}-${id}`;
+      const cachedData = localStorage[cacheKey];
+      if (cachedData) { return { ...cachedData, ...data } as T; }
+
       setLoading(true);
-      return await fetch(`/api/app/firestore/${collectionName}/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }).then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to create document');
-        }
-        return response.json();
-      }).finally(() => setLoading(false));
+      return await request.finally(() => setLoading(false)) as T;
     },
     async delete(collectionName: CollectionName, id: string) {
+      const request = sequentialFetch(async () => {
+        return await fetch(`/api/app/firestore/${collectionName}/${id}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+        });
+      });
+
       setLoading(true);
-      return await fetch(`/api/app/firestore/${collectionName}/${id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-      }).finally(() => setLoading(false));
+      return await request.finally(() => setLoading(false));
     },
   };
 }

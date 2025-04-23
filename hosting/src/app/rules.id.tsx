@@ -32,7 +32,7 @@ export default function RuleDetailPage() {
   useEffect(() => {
     if (ruleId !== 'new') {
       setLoading(true);
-      firestore.read(CollectionName.ShopifyRules, ruleId)
+      firestore.read<Rule>(CollectionName.ShopifyRules, ruleId)
         .then((response) => {
           setRule(response);
           setOriginalRule(response);
@@ -188,16 +188,18 @@ export default function RuleDetailPage() {
                         {index > 0 && (
                           <Bleed marginInline='400'><Box borderBlockStartWidth='025' borderColor='border-secondary' /></Bleed>
                         )}
-                        <InlineStack gap='300' blockAlign='center'>
+                        <InlineStack gap='300' blockAlign='start'>
                           <div style={{ flex: 1 }}>
                             <FormCondition condition={condition} onChange={condition => {
                               setRule(prev => ({ ...prev, conditions: prev.conditions.map((c, i) => i === index ? condition : c) }));
                             }} />
                           </div>
                           {rule.conditions.length > 1 && (
-                            <Button icon={XIcon} variant='tertiary' accessibilityLabel='Remove rule' onClick={() => {
-                              setRule(prev => ({ ...prev, conditions: prev.conditions.filter((_, i) => i !== index) }));
-                            }} />
+                            <div style={{ transform: 'translateY(28px)' }}>
+                              <Button icon={XIcon} variant='tertiary' accessibilityLabel='Remove rule' onClick={() => {
+                                setRule(prev => ({ ...prev, conditions: prev.conditions.filter((_, i) => i !== index) }));
+                              }} />
+                            </div>
                           )}
                         </InlineStack>
                       </>
@@ -227,13 +229,13 @@ export default function RuleDetailPage() {
                     <BlockStack gap='300'>
                       {rule.trigger.length ? rule.trigger.map((item, index) => (
                         <>
-                          <InlineStack gap='300' blockAlign='center'>
+                          <InlineStack gap='300' blockAlign='start'>
                             <div style={{ flex: 1 }}>
                               <FormTrigger trigger={item} onChange={trigger => {
                                 setRule(prev => ({ ...prev, trigger: prev.trigger.map((t, i) => i === index ? trigger : t) }));
                               }} />
                             </div>
-                            <div style={{ transform: 'translateY(14px)' }}>
+                            <div style={{ transform: 'translateY(30px)' }}>
                               <Button icon={XIcon} variant='tertiary' accessibilityLabel='Remove rule' onClick={() => {
                                 setRule(prev => ({ ...prev, trigger: prev.trigger.filter((_, i) => i !== index) }));
                               }} />
@@ -301,8 +303,6 @@ export default function RuleDetailPage() {
         </Layout.Section>
       </Layout>
 
-      <Box paddingBlockStart="500" />
-
       {ruleId !== 'new' && (
         <PageActions
           primaryAction={{ content: 'Save', disabled: !hasChanges, onAction: () => onSubmit() }}
@@ -361,9 +361,9 @@ export default function RuleDetailPage() {
         shopify.saveBar.hide('my-save-bar');
         navigate('/app/rules');
       } else if (action === 'duplicate') {
-        const newRule = { ...rule, name: rule.name + ' (copy)', status: 'draft' };
+        const newRule: Omit<Rule, keyof DocumentSnapshot> = { ...rule, name: rule.name + ' (copy)', status: 'draft' };
         await shopify.saveBar.leaveConfirmation();
-        const response = await firestore.create(CollectionName.ShopifyRules, newRule);
+        const response = await firestore.create<Rule>(CollectionName.ShopifyRules, newRule);
         navigate('/app/rules/' + response.id);
       } else if (action === 'deactivate' || action === 'activate') {
         const newStatus = action === 'deactivate' ? 'draft' : 'active';
