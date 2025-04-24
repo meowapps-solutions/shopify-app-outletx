@@ -6,7 +6,7 @@ import {DocumentSnapshot} from '../firestore/types';
 
 export interface Rule extends DocumentSnapshot {
   name: string;
-  status: 'active' | 'draft';
+  status: 'active' | 'inactive';
   condition_logic: 'all' | 'any';
   conditions: Condition[];
   trigger: Trigger[];

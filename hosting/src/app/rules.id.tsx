@@ -11,6 +11,7 @@ import FormCondition from '../components/form-condition';
 import FormTrigger from '../components/form-trigger';
 import NotFound from '../404';
 import { CollectionName } from '../hooks/use-firestore';
+import PopoverDelete from '../components/popover-delete';
 
 export default function RuleDetailPage() {
   const { ruleId } = useParams() as { ruleId: string };
@@ -26,27 +27,27 @@ export default function RuleDetailPage() {
   });
   const [originalRule, setOriginalRule] = useState(rule);
   const hasChanges = !deepCompare(originalRule, rule);
-  const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [ruleNotFound, setRuleNotFound] = useState(false);
+  const [loadingDuplicate, setLoadingDuplicate] = useState(false);
 
   useEffect(() => {
     if (ruleId !== 'new') {
-      setLoading(true);
       firestore.read<Rule>(CollectionName.ShopifyRules, ruleId)
         .then((response) => {
           setRule(response);
           setOriginalRule(response);
         })
         .catch(() => { setRuleNotFound(true); })
-        .finally(() => { setLoading(false); });
+        .finally(() => { setInitialLoad(false); });
     } else {
-      setLoading(false);
+      setInitialLoad(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ruleId]);
 
   useEffect(() => {
-    if (loading) { return; }
+    if (initialLoad) { return; }
     if (hasChanges) { shopify.saveBar.show('my-save-bar'); }
     else { shopify.saveBar.hide('my-save-bar'); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -62,20 +63,21 @@ export default function RuleDetailPage() {
     apply_scope: '',
   });
 
-  if (loading) { return null; }
+  if (initialLoad) { return null; }
   if (ruleNotFound) { return <NotFound />; }
   return (
     <Page
       title={rule.name || 'Add rule'}
       titleMetadata={rule.name && rule.status && {
         'active': <Badge tone='success'>Active</Badge>,
-        'draft': <Badge tone='info'>Draft</Badge>,
+        'inactive': <Badge tone='info'>Inactive</Badge>,
       }[rule.status]}
       backAction={{ content: 'Rules', onAction: () => navigate('/app/rules') }}
       secondaryActions={ruleId === 'new' ? undefined : [
         {
           icon: DuplicateIcon,
           content: 'Duplicate',
+          loading: loadingDuplicate,
           onAction: () => onSubmit('duplicate'),
         },
         {
@@ -306,7 +308,9 @@ export default function RuleDetailPage() {
       {ruleId !== 'new' && (
         <PageActions
           primaryAction={{ content: 'Save', disabled: !hasChanges, onAction: () => onSubmit() }}
-          secondaryActions={[{ content: 'Delete rule', destructive: true, onAction: () => shopify.modal.show('delete-rule-modal') }]}
+          secondaryActions={
+            <PopoverDelete children='Delete rule' onAction={() => onSubmit('delete')} />
+          }
         />
       )}
 
@@ -318,17 +322,6 @@ export default function RuleDetailPage() {
           else { setRule(originalRule); }
         }}></button>
       </ui-save-bar>
-
-      <ui-modal id='delete-rule-modal' variant='small'>
-        <Box padding='400'><p>Deleting <strong>{rule.name}</strong> is permanent and cannot be undone.</p></Box>
-        <ui-title-bar title='Are you sure you want to proceed?'>
-          <button variant='primary' tone='critical' onClick={() => {
-            shopify.modal.hide('delete-rule-modal');
-            onSubmit('delete');
-          }}>Delete rule</button>
-          <button onClick={() => shopify.modal.hide('delete-rule-modal')}>Cancel</button>
-        </ui-title-bar>
-      </ui-modal>
     </Page>
   );
 
@@ -361,12 +354,14 @@ export default function RuleDetailPage() {
         shopify.saveBar.hide('my-save-bar');
         navigate('/app/rules');
       } else if (action === 'duplicate') {
-        const newRule: Omit<Rule, keyof DocumentSnapshot> = { ...rule, name: rule.name + ' (copy)', status: 'draft' };
+        const newRule: Omit<Rule, keyof DocumentSnapshot> = { ...rule, name: rule.name + ' (copy)', status: 'inactive' };
         await shopify.saveBar.leaveConfirmation();
+        setLoadingDuplicate(true);
         const response = await firestore.create<Rule>(CollectionName.ShopifyRules, newRule);
+        setLoadingDuplicate(false);
         navigate('/app/rules/' + response.id);
       } else if (action === 'deactivate' || action === 'activate') {
-        const newStatus = action === 'deactivate' ? 'draft' : 'active';
+        const newStatus = action === 'deactivate' ? 'inactive' : 'active';
         await firestore.update(CollectionName.ShopifyRules, ruleId, { status: newStatus });
         setRule(prev => ({ ...prev, status: newStatus }));
         setOriginalRule(prev => ({ ...prev, status: newStatus }));

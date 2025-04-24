@@ -3,7 +3,7 @@
 client_id = "345807df431aedc80af38c5c45ef2ecb"
 name = "OutletX MVP"
 handle = "my-awesome-app-155"
-application_url = "https://processors-lover-snow-bluetooth.trycloudflare.com/app/"
+application_url = "https://pray-smoking-councils-rugs.trycloudflare.com/app/"
 embedded = true
 
 [build]
@@ -18,7 +18,7 @@ embedded_app_direct_api_access = true
 
 [auth]
 redirect_urls = [
-  "https://processors-lover-snow-bluetooth.trycloudflare.com/api/auth/callback/"
+  "https://pray-smoking-councils-rugs.trycloudflare.com/api/auth/callback/"
 ]
 
 [webhooks]
@@ -26,7 +26,7 @@ api_version = "2025-01"
 
 [[webhooks.subscriptions]]
 topics = ["app/uninstalled","products/create","products/delete","products/update","orders/fulfilled"]
-uri = "https://processors-lover-snow-bluetooth.trycloudflare.com/api/webhooks/"
+uri = "https://pray-smoking-councils-rugs.trycloudflare.com/api/webhooks/"
 
 [pos]
 embedded = false

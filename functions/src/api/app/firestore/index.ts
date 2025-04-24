@@ -1,6 +1,8 @@
 import * as core from 'express-serve-static-core';
 import {db} from '../../../firebase.server';
 import {Session} from '@shopify/shopify-api';
+import {FirestoreQueryParams} from './types';
+import {WhereFilterOp} from 'firebase-admin/firestore';
 
 export default (app: core.Express) => {
   // --- Create (POST) ---
@@ -53,15 +55,37 @@ export default (app: core.Express) => {
   app.get('/api/app/firestore/:collectionName', async (req, res) => {
     const session = res.locals.shopify.session as Session;
     const {collectionName} = req.params;
-    const {limit}: {
-      limit?: string;
-    } = req.query;
+    const {limit, offset, sortBy, sortDirection} = req.query as FirestoreQueryParams;
+    const where = req.query.where ? JSON.parse(req.query.where as string) as FirestoreQueryParams['where'] : null;
 
     let query = db.collection(collectionName)
       .where('shop', '==', session.shop);
 
-    if (limit && !isNaN(parseInt(limit))) {
-      query = query.limit(parseInt(limit));
+    if (where) {
+      Object.entries(where).forEach(([key, value]) => {
+        if (typeof value === 'object' && !Array.isArray(value)) {
+          Object.entries(value).forEach(([operator, filterValue]) => {
+            if (filterValue) {
+              query = query.where(key, operator as WhereFilterOp, filterValue);
+            }
+          });
+        } else {
+          query = query.where(key, '==', value);
+        }
+      });
+    }
+
+    if (limit && !isNaN(Number(limit))) {
+      query = query.limit(Number(limit));
+    }
+
+    if (offset && !isNaN(Number(offset))) {
+      query = query.offset(Number(offset));
+    }
+
+    if (sortBy) {
+      const direction = sortDirection === 'desc' ? 'desc' : 'asc';
+      query = query.orderBy(sortBy, direction);
     }
 
     const querySnapshot = await query.get();
