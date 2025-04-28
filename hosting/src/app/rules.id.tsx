@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
-import { ActionList, Badge, Bleed, BlockStack, Box, Button, Card, ChoiceList, Icon, InlineError, InlineStack, Layout, Page, PageActions, Popover, Text, TextField } from '@shopify/polaris';
+import { ActionList, ActionListItemDescriptor, Badge, Bleed, BlockStack, Box, Button, Card, ChoiceList, Icon, InlineError, InlineStack, Layout, Page, PageActions, Popover, Text, TextField } from '@shopify/polaris';
 import { AlertCircleIcon, ArrowDownIcon, DuplicateIcon, PlusIcon, SettingsIcon, StatusActiveIcon, TextFontIcon, XIcon } from '@shopify/polaris-icons';
 import { useGlobalData } from '../data/global-data-context';
 import { DocumentSnapshot } from '../../../functions/src/api/app/firestore/types';
-import { Rule } from '../../../functions/src/api/app/rules/types';
+import { Rule, Trigger } from '../../../functions/src/api/app/rules/types';
 import ResourcePicker from '../components/resource-picker';
 import deepCompare from '../utils/deep-compare';
 import FormCondition from '../components/form-condition';
@@ -62,6 +62,34 @@ export default function RuleDetailPage() {
     trigger: '',
     apply_scope: '',
   });
+
+  const actionList: Record<Trigger['type'], ActionListItemDescriptor | undefined> = {
+    'move_to_collection': {
+      content: 'Move to collection',
+      onAction: () => {
+        setActiveTriggerPopover(false);
+        setRule(prev => ({ ...prev, trigger: prev.trigger.concat({ type: 'move_to_collection', config: { value: '' } }) }));
+      },
+      disabled: rule.trigger.some(trigger => trigger.type === 'move_to_collection'),
+    },
+    'discount': {
+      content: 'Discount',
+      onAction: () => {
+        setActiveTriggerPopover(false);
+        setRule(prev => ({ ...prev, trigger: prev.trigger.concat({ type: 'discount', config: { value: 0, options: { min_price: 0 } } }) }));
+      },
+      disabled: rule.trigger.some(trigger => trigger.type === 'discount' || trigger.type === 'discount_fixed_amount'),
+    },
+    'discount_fixed_amount': undefined,
+    'add_tag': {
+      content: 'Add tag',
+      onAction: () => {
+        setActiveTriggerPopover(false);
+        setRule(prev => ({ ...prev, trigger: prev.trigger.concat({ type: 'add_tag', config: { value: '' } }) }));
+      },
+      disabled: rule.trigger.some(trigger => trigger.type === 'add_tag'),
+    },
+  };
 
   if (initialLoad) { return null; }
   if (ruleNotFound) { return <NotFound />; }
@@ -265,24 +293,7 @@ export default function RuleDetailPage() {
                     >
                       <ActionList
                         actionRole='menuitem'
-                        items={[
-                          {
-                            content: 'Move to collection',
-                            onAction: () => {
-                              setActiveTriggerPopover(false);
-                              setRule(prev => ({ ...prev, trigger: prev.trigger.concat({ type: 'move_to_collection', config: { value: '' } }) }));
-                            },
-                            disabled: rule.trigger.some(trigger => trigger.type === 'move_to_collection'),
-                          },
-                          {
-                            content: 'Discount',
-                            onAction: () => {
-                              setActiveTriggerPopover(false);
-                              setRule(prev => ({ ...prev, trigger: prev.trigger.concat({ type: 'discount', config: { value: 0, options: { min_price: 0 } } }) }));
-                            },
-                            disabled: rule.trigger.some(trigger => trigger.type === 'discount' || trigger.type === 'discount_fixed_amount'),
-                          },
-                        ]}
+                        items={Object.values(actionList).filter(Boolean) as ActionListItemDescriptor[]}
                       />
                     </Popover>
                   </Box>
@@ -354,7 +365,7 @@ export default function RuleDetailPage() {
         shopify.saveBar.hide('my-save-bar');
         navigate('/app/rules');
       } else if (action === 'duplicate') {
-        const newRule: Omit<Rule, keyof DocumentSnapshot> = { ...rule, name: rule.name + ' (copy)', status: 'inactive' };
+        const newRule: Omit<Rule, keyof DocumentSnapshot> = { ...rule, name: rule.name.endsWith(' (copy)') ? rule.name : rule.name + ' (copy)', status: 'inactive' };
         await shopify.saveBar.leaveConfirmation();
         setLoadingDuplicate(true);
         const response = await firestore.create<Rule>(CollectionName.ShopifyRules, newRule);
@@ -362,15 +373,15 @@ export default function RuleDetailPage() {
         navigate('/app/rules/' + response.id);
       } else if (action === 'deactivate' || action === 'activate') {
         const newStatus = action === 'deactivate' ? 'inactive' : 'active';
-        await firestore.update(CollectionName.ShopifyRules, ruleId, { status: newStatus });
+        await firestore.update<Rule>(CollectionName.ShopifyRules, ruleId, { status: newStatus });
         setRule(prev => ({ ...prev, status: newStatus }));
         setOriginalRule(prev => ({ ...prev, status: newStatus }));
       } else if (ruleId === 'new') {
-        const response = await firestore.create(CollectionName.ShopifyRules, rule);
+        const response = await firestore.create<Rule>(CollectionName.ShopifyRules, rule);
         shopify.saveBar.hide('my-save-bar');
         navigate('/app/rules/' + response.id);
       } else {
-        const response = await firestore.update(CollectionName.ShopifyRules, ruleId, rule);
+        const response = await firestore.update<Rule>(CollectionName.ShopifyRules, ruleId, rule);
         setRule(response);
         setOriginalRule(response);
       }

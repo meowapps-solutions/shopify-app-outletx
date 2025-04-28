@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Rule } from '../../../functions/src/api/app/rules/types';
 import { CollectionName } from '../hooks/use-firestore';
 import { FirestoreQueryParams } from '../../../functions/src/api/app/firestore/types';
+import { simpleDecrypt, simpleEncrypt } from '../utils/encrypt-decrypt';
+import ModalDropZone from '../components/modal-drop-zone';
 
 export default function RuleListPage() {
   const { navigate } = useGlobalData();
@@ -24,7 +26,7 @@ export default function RuleListPage() {
       { label: 'Updated At', value: 'updated_at desc', directionLabel: 'Descending' },
     ],
   };
-  const [sortSelected, setSortSelected] = useState(['updated_at desc']);
+  const [sortSelected, setSortSelected] = useState(['created_at desc']);
   const statusOptions: Record<Rule['status'], ChoiceListProps['choices'][0]> = {
     active: { label: 'Active', value: 'active' },
     inactive: { label: 'Inactive', value: 'inactive' },
@@ -67,9 +69,35 @@ export default function RuleListPage() {
 
   // State for IndexTable
   const { firestore } = useGlobalData();
-  const [orders, setOrders] = useState<Rule[]>([]);
+  const [originalRules, setRules] = useState<Rule[]>([]);
+  const rules = useMemo(() => {
+    const fuzzyMatch = (pattern: string, str: string) => {
+      const patternLen = pattern.length;
+      const strLen = str.length;
+      if (patternLen > strLen) return false;
+
+      let patternIdx = 0;
+      let strIdx = 0;
+
+      while (patternIdx < patternLen && strIdx < strLen) {
+        if (
+          pattern[patternIdx].toLowerCase().trim() ===
+          str[strIdx].toLowerCase().trim()
+        ) {
+          patternIdx++;
+        }
+        strIdx++;
+      }
+
+      return patternIdx === patternLen;
+    };
+    return originalRules.filter((rule) => {
+      return queryValue === '' || fuzzyMatch(queryValue.toLowerCase(), rule.name.toLowerCase());
+    });
+  }, [queryValue, originalRules]);
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   useEffect(() => {
     setLoading(true);
     firestore.query<Rule>(CollectionName.ShopifyRules, {
@@ -79,16 +107,16 @@ export default function RuleListPage() {
       sortBy: sortSelected[0].split(' ')[0],
       sortDirection: sortSelected[0].split(' ')[1] as keyof FirestoreQueryParams['sortDirection'],
     })
-      .then(setOrders)
+      .then(setRules)
       .finally(() => {
         setInitialLoad(false);
         setLoading(false);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusSelected, sortSelected]);
+  }, [statusSelected, sortSelected, refreshKey]);
   const { selectedResources, allResourcesSelected, handleSelectionChange } =
-    useIndexResourceState(orders as unknown as { [key: string]: unknown; }[]);
-  const rowMarkup = orders.map(
+    useIndexResourceState(rules as unknown as { [key: string]: unknown; }[]);
+  const rowMarkup = rules.map(
     (
       { id, name, status },
       index,
@@ -120,7 +148,7 @@ export default function RuleListPage() {
   return (
     <Page
       primaryAction={<Button onClick={() => navigate('/app/rules/new')} variant='primary'>Create rule</Button>}
-      secondaryActions={[{ content: 'Import', onAction: () => { } }]}
+      secondaryActions={[{ content: 'Import', onAction: () => { shopify.modal.show('drop-zone-rule'); } }]}
     >
       <Card>
         <Bleed marginBlockStart='400' marginInline='400'>
@@ -158,15 +186,34 @@ export default function RuleListPage() {
           />
           <IndexTable
             resourceName={{ singular: 'rule', plural: 'rules' }}
-            itemCount={orders.length}
+            itemCount={rules.length}
             selectedItemsCount={allResourcesSelected ? 'All' : selectedResources.length}
             onSelectionChange={handleSelectionChange}
             promotedBulkActions={[{
               content: 'Export rules',
-              onAction: () => { },
+              onAction: () => {
+                for (const rule of rules) {
+                  const fileContent = simpleEncrypt(JSON.stringify(rule));
+                  if (fileContent) {
+                    const bb = new Blob([fileContent], { type: 'text/plain' });
+                    const a = document.createElement('a');
+                    a.download = `${rule.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-+|-+$/g, '')}.outletx`;
+                    a.href = window.URL.createObjectURL(bb);
+                    a.click();
+                  }
+                }
+              },
             }, {
               content: 'Set as inactive',
-              onAction: () => { },
+              onAction: async () => {
+                const response = await Promise.all(
+                  selectedResources.map(ruleId => firestore.update<Rule>(CollectionName.ShopifyRules, ruleId, { status: 'inactive' })),
+                );
+                setRules((prev) => prev.map((rule) => {
+                  const updatedRule = response.find((r) => r.id === rule.id);
+                  return updatedRule ? { ...rule, status: updatedRule.status } : rule;
+                }));
+              },
             }]}
             headings={[
               { title: 'Rule' },
@@ -179,10 +226,48 @@ export default function RuleListPage() {
           </IndexTable>
 
           <Box paddingInline="400" paddingBlockStart="400" borderBlockStartWidth="025" borderColor="border-secondary">
-            <Text as="p" variant='bodyMd' tone='subdued' fontWeight='medium'>Showing {orders.length} of {orders.length} rules</Text>
+            <Text as="p" variant='bodyMd' tone='subdued' fontWeight='medium'>Showing {rules.length} of {rules.length} rules</Text>
           </Box>
         </Bleed>
       </Card>
+
+      <ModalDropZone id='drop-zone-rule' title='Import rule' primaryLabel='Import' actionHint='or drop .outletx files to import' contentTitle='Import the following rules:' accept='.outletx' type='file' onAction={async (files) => {
+        // read content of each file
+        const fileContents = await Promise.all(files.map((file) => {
+          return new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              const content = event.target?.result as string;
+              resolve(content);
+            };
+            reader.readAsText(file);
+          });
+        }));
+        // decrypt each file content
+        const decryptedContents = fileContents.map((content) => {
+          const decrypted = simpleDecrypt(content);
+          if (decrypted) {
+            const rule = JSON.parse(decrypted) as Rule;
+            return rule;
+          }
+          return null;
+        }).filter((rule) => rule !== null) as Rule[];
+        // create each rule in firestore
+        await Promise.all(
+          decryptedContents.map((rule) => {
+            return firestore.create<Rule>(CollectionName.ShopifyRules, {
+              ...rule,
+              status: 'inactive',
+            });
+          }),
+        );
+        // reset all states
+        onClearAll();
+        // refresh the list
+        setRefreshKey(prev => prev + 1);
+        // show success message
+        shopify.toast.show(`${files.length} rules imported`);
+      }} />
     </Page>
   );
 }

@@ -1,10 +1,4 @@
-/* eslint-disable max-len */
-
-import {DocumentSnapshot} from '../firestore/types';
-
-// Interfaces (Models)
-
-export interface Rule extends DocumentSnapshot {
+export interface Rule {
   name: string;
   status: 'active' | 'inactive';
   condition_logic: 'all' | 'any';

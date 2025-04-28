@@ -7,13 +7,13 @@ export default function PopoverDelete(props: TType) {
   const [popoverActive, setPopoverActive] = useState(false);
   const [isLoading, setLoading] = useState(false);
 
-  const togglePopoverActive = useCallback(
-    () => setPopoverActive((popoverActive) => !popoverActive),
-    [],
-  );
+  const togglePopoverActive = useCallback(() => {
+    if (isLoading) { return; }
+    setPopoverActive((popoverActive) => !popoverActive);
+  }, [isLoading]);
 
   const activator = (
-    <Button onClick={togglePopoverActive} variant="primary" tone="critical" loading={isLoading} {...props} />
+    <Button onClick={togglePopoverActive} variant="primary" tone="critical" {...props} />
   );
 
   return (
@@ -31,15 +31,17 @@ export default function PopoverDelete(props: TType) {
             <ButtonGroup>
               <Button
                 variant="secondary"
+                disabled={isLoading}
                 onClick={togglePopoverActive}
               >Cancel</Button>
               <Button
                 variant="primary"
+                loading={isLoading}
                 tone="critical" onClick={async () => {
-                  togglePopoverActive();
                   setLoading(true);
                   await props.onAction?.();
                   setLoading(false);
+                  togglePopoverActive();
                 }}
               >Delete</Button>
             </ButtonGroup>

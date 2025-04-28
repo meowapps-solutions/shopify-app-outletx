@@ -1,54 +1,23 @@
 import * as core from 'express-serve-static-core';
-import {db} from '../../../firebase.server';
+import {db} from '../../firebase.server';
 import {Session} from '@shopify/shopify-api';
-import {FirestoreQueryParams} from './types';
-import {WhereFilterOp} from 'firebase-admin/firestore';
+import {Collection, DefaultField} from '../../firebase/firestore/types';
 
 export default (app: core.Express) => {
   // --- Create (POST) ---
   app.post('/api/app/firestore/:collectionName', async (req, res) => {
     const session = res.locals.shopify.session as Session;
-    const {collectionName} = req.params;
-    const data = req.body;
-
-    if (!data || Object.keys(data).length === 0) {
-      res.status(400).json({error: 'Bad Request: No data provided in body.'});
-      return;
-    }
-
-    const dataToSave = {
-      ...data,
-      shop: session.shop,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    // Ensure the ID field cannot be added directly
-    if (dataToSave.id) {
-      delete dataToSave.id;
-    }
-
-    const docRef = await db.collection(collectionName).add(dataToSave);
-    res.status(201).json({id: docRef.id, ...dataToSave});
+    const {collectionName} = req.params as { collectionName: keyof Collection };
+    const data = req.body as Omit<Collection[keyof Collection], keyof DefaultField>;
+    const response = await db.collection(collectionName).create({...data, shop: session.shop});
+    res.status(201).json(response);
   });
 
   // --- Get (GET) ---
   app.get('/api/app/firestore/:collectionName/:docId', async (req, res) => {
     const session = res.locals.shopify.session as Session;
-    const {collectionName, docId} = req.params;
-    const docRef = db.collection(collectionName).doc(docId);
-    const docSnap = await docRef.get();
-
-    if (docSnap.exists) {
-      const data = docSnap.data();
-      if (data?.shop && data.shop !== session.shop) {
-        res.status(403).json({error: 'Forbidden: Access denied'});
-        return;
-      }
-      res.status(200).json({id: docSnap.id, ...data});
-    } else {
-      res.status(404).json({error: 'Document not found'});
-    }
+    const {collectionName, docId} = req.params as { collectionName: keyof Collection, docId: string };
+    const response = await db.collection(collectionName).read(docId);
   });
 
   // --- Get all (GET) ---
@@ -131,7 +100,7 @@ export default (app: core.Express) => {
     };
     await docRef.update(dataToUpdate);
 
-    res.status(200).json({message: 'Document updated successfully', id: docId});
+    res.status(200).json({id: docRef.id, ...dataToUpdate});
   });
 
   // --- Delete (DELETE) ---

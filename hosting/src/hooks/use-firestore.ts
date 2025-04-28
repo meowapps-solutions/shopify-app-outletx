@@ -4,6 +4,7 @@ import { DocumentSnapshot, FirestoreQueryParams } from '../../../functions/src/a
 
 export enum CollectionName {
   ShopifyRules = 'shopify-rules',
+  ShopifySettings = 'shopify-settings',
 }
 
 export default function useFirestore() {

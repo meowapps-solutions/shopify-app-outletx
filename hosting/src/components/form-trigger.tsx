@@ -4,6 +4,7 @@ import useSyncedState from '../hooks/use-synced-state';
 import ResourcePicker from './resource-picker';
 import deepCompare from '../utils/deep-compare';
 import { BlockStack, InlineGrid, Select, Text, TextField } from '@shopify/polaris';
+import AutocompleteProduct from './autocomplete-product';
 
 export default function FormTrigger({ trigger, onChange }: { trigger: Trigger, onChange?: (condition: Trigger) => void }) {
   const [state, setState] = useSyncedState(trigger);
@@ -63,6 +64,15 @@ export default function FormTrigger({ trigger, onChange }: { trigger: Trigger, o
             />
           </InlineGrid>
         </BlockStack>
+      </BlockStack>
+    ),
+    'add_tag': (
+      <BlockStack gap='100'>
+        <Text as="p">Tags</Text>
+        <AutocompleteProduct type='productTags' allowMultiple={true} selected={state.config.value ? [state.config.value as string] : []} onSelect={(value) => {
+          console.log({ value });
+          setState(prev => ({ ...prev, config: { ...prev.config, value: value[0] } }));
+        }} />
       </BlockStack>
     ),
     get ['discount_fixed_amount']() {
