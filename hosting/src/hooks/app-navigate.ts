@@ -5,7 +5,9 @@ export function useAppNavigate() {
   const location = useLocation();
   const currentSearchParams = new URLSearchParams(location.search);
 
-  return (to: string) => {
+  return async (to: string) => {
+    await shopify.saveBar.leaveConfirmation();
+
     const [pathnamePart, searchPart] = to.split('?');
     const toSearchParams = new URLSearchParams(searchPart);
     const mergedSearchParams = new URLSearchParams();

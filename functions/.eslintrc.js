@@ -32,5 +32,6 @@ module.exports = {
     'indent': ['error', 2],
     'semi': ['error', 'always'],
     'comma-dangle': ['error', 'always-multiline'],
+    'max-len': 0,
   },
 };

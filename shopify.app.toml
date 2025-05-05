@@ -1,9 +1,9 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "345807df431aedc80af38c5c45ef2ecb"
-name = "My Awesome App"
+name = "OutletX MVP"
 handle = "my-awesome-app-155"
-application_url = "https://my-awesome-project-e66af.web.app/app/"
+application_url = "https://nt-hard-literacy-runtime.trycloudflare.com/app/"
 embedded = true
 
 [build]
@@ -11,19 +11,22 @@ include_config_on_deploy = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_products,write_products"
+scopes = "read_all_orders,read_orders,read_products,write_products,read_inventory"
+
+[access.admin]
+embedded_app_direct_api_access = true
 
 [auth]
 redirect_urls = [
-  "https://my-awesome-project-e66af.web.app/api/auth/callback/"
+  "https://nt-hard-literacy-runtime.trycloudflare.com/api/auth/callback/"
 ]
 
 [webhooks]
 api_version = "2025-01"
 
 [[webhooks.subscriptions]]
-topics = ["app/uninstalled"]
-uri = "https://my-awesome-project-e66af.web.app/api/webhooks/"
+topics = ["app/uninstalled","products/create","products/delete","products/update","orders/fulfilled"]
+uri = "https://nt-hard-literacy-runtime.trycloudflare.com/api/webhooks/"
 
 [pos]
 embedded = false

@@ -11,7 +11,8 @@ import Index from './index';
 import NotFound from './404';
 import AppLayout from './app/_layout';
 import App from './app/index';
-import AdditionalPage from './app/additional';
+import RuleDetailPage from './app/rules.id';
+import RuleListPage from './app/rules';
 
 // https://reactrouter.com/start/library/routing
 createRoot(document.getElementById('root')!).render(
@@ -22,7 +23,8 @@ createRoot(document.getElementById('root')!).render(
 
         <Route path="app" element={<AppLayout />}>
           <Route index element={<App />} />
-          <Route path="additional" element={<AdditionalPage />} />
+          <Route path="rules/:ruleId" element={<RuleDetailPage />} />
+          <Route path="rules" element={<RuleListPage />} />
         </Route>
 
         <Route path='*' element={<NotFound />} />
@@ -31,7 +33,8 @@ createRoot(document.getElementById('root')!).render(
       <AppNavMenu
         tabs={[
           { content: 'Home', url: '/app' },
-          { content: 'Additional page', url: '/app/additional' },
+          { url: '/app', content: 'Dashboard' },
+          { url: '/app/rules', content: 'Manage Rules' },
         ]}
       />
     </BrowserRouter>
