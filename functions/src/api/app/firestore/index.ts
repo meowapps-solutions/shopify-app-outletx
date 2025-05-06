@@ -4,20 +4,20 @@ import {Collection, DefaultField} from './types';
 import {Session} from '@shopify/shopify-api';
 
 export const storage = (shop: string) => ({
-  get: async (collection: keyof Collection, id: string): Promise<Collection[keyof Collection] | null> => {
+  get: async <T extends keyof Collection>(collection: T, id: string): Promise<Collection[T] | null> => {
     const doc = await db.collection(collection).doc(id).get();
-    return doc.exists ? {...doc.data() as Collection[keyof Collection], id: doc.id} : null;
+    return doc.exists ? {...doc.data() as Collection[T], id: doc.id} : null;
   },
-  set: async (collection: keyof Collection, id: string, data: Partial<Omit<Collection[keyof Collection], keyof DefaultField>>): Promise<void> => {
+  set: async <T extends keyof Collection>(collection: T, id: string, data: Partial<Omit<Collection[T], keyof DefaultField>>): Promise<void> => {
     const newData: typeof data & DefaultField = {...data, id, shop, updated_at: new Date().toISOString()};
     await db.collection(collection).doc(id).set(newData, {merge: true});
   },
-  delete: async (collection: keyof Collection, id: string): Promise<void> => {
+  delete: async <T extends keyof Collection>(collection: T, id: string): Promise<void> => {
     await db.collection(collection).doc(id).delete();
   },
-  getAll: async (collection: keyof Collection): Promise<Collection[keyof Collection][]> => {
+  getAll: async <T extends keyof Collection>(collection: T): Promise<Collection[T][]> => {
     const doc = await db.collection(collection).where('shop', '==', shop).get();
-    return doc.docs.map((doc) => ({...doc.data() as Collection[keyof Collection], id: doc.id}));
+    return doc.docs.map((doc) => ({...doc.data() as Collection[T], id: doc.id}));
   },
 });
 

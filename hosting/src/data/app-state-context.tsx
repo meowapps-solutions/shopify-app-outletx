@@ -1,22 +1,27 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Icon, InlineStack } from '@shopify/polaris';
 import { RefreshIcon } from '@shopify/polaris-icons';
-import { Collection, Rule } from '../../../functions/src/api/app/firestore/types';
+import { Collection, Rule, Setting } from '../../../functions/src/api/app/firestore/types';
 import { useFetch } from '../hooks/http-client';
 
 type TContext = {
   rules: Record<string, Rule | undefined>;
+  settings: Record<string, Setting | undefined>;
+  shop: string;
 }
 
 const AppStateContext = createContext<TContext | undefined>(undefined);
 
 export const AppStateProvider = ({ children }: { children: React.ReactNode }) => {
+  const shop = shopify.config.shop;
+  if (!shop) { throw new Error('Shopify config is not available'); }
   const fetch = useFetch();
   const lastRequestRef = useRef<Record<string, Promise<void> | undefined>>({});
   const [isLoading, setLoading] = useState(false);
   const [isSyncing, setSyncing] = useState(false);
   const deletedRef = useRef<Record<string, unknown | undefined>>({});
   const [rules] = useState(new Proxy<TContext['rules']>({}, proxyHandler('shopify-rules')));
+  const [settings] = useState(new Proxy<Record<string, Setting | undefined>>({}, proxyHandler('shopify-settings')));
 
   useEffect(() => { shopify.loading(isLoading); }, [isLoading]);
   useEffect(() => {
@@ -25,7 +30,7 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
   }, []);
 
   return (
-    <AppStateContext.Provider value={{ rules }}>
+    <AppStateContext.Provider value={{ rules, settings, shop }}>
       {children}
 
       {isSyncing && (

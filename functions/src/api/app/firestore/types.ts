@@ -1,5 +1,6 @@
 export interface Collection {
   'shopify-rules': Rule & DefaultField;
+  'shopify-settings': Setting & DefaultField;
 }
 
 export interface DefaultField {
@@ -28,4 +29,13 @@ export interface Rule {
       };
     };
   }[];
+}
+
+export interface Setting {
+  enabled?: boolean;
+  excluded_collections?: { id: string; variants?: string[] }[];
+  excluded_products?: { id: string; variants?: string[] }[];
+  default_outlet_collection_id?: string;
+  last_sync_time?: string;
+  sync_status?: 'success' | 'error' | 'need_sync';
 }

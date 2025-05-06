@@ -99,10 +99,9 @@ export default function AutocompleteProduct({ label, type, selected, onSelect, a
   const textField = (
     <Autocomplete.TextField
       onChange={value => {
-        setQuery(value);
-        if (!allowMultiple) {
-          setSelectedOptions([value]);
-        }
+        const newvalue = type === 'productTags' ? value.replace(/,/g, '') : value;
+        setQuery(newvalue);
+        if (!allowMultiple) { setSelectedOptions([newvalue]); }
       }}
       labelHidden={!label}
       label={label || 'Search'}

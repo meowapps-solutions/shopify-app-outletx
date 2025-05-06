@@ -2,6 +2,8 @@ import {onRequest} from 'firebase-functions/v2/https';
 import express from 'express';
 import shopify from '../shopify.server';
 import firestoreRoutes from './app/firestore';
+import scheduleRoutes from './app/schedule';
+import syncRoutes from './app/sync';
 
 const app = express();
 
@@ -12,5 +14,7 @@ app.get('/api/app/', (_, res) => {
 });
 
 firestoreRoutes(app);
+scheduleRoutes(app);
+syncRoutes(app);
 
 export default onRequest(app);

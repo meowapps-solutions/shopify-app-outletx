@@ -13,6 +13,7 @@ import AppLayout from './app/_layout';
 import App from './app/index';
 import RuleDetailPage from './app/rules.id';
 import RuleListPage from './app/rules';
+import SettingsPage from './app/settings';
 
 // https://reactrouter.com/start/library/routing
 createRoot(document.getElementById('root')!).render(
@@ -25,6 +26,7 @@ createRoot(document.getElementById('root')!).render(
           <Route index element={<App />} />
           <Route path="rules/:ruleId" element={<RuleDetailPage />} />
           <Route path="rules" element={<RuleListPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
 
         <Route path='*' element={<NotFound />} />
@@ -35,6 +37,7 @@ createRoot(document.getElementById('root')!).render(
           { content: 'Home', url: '/app' },
           { url: '/app', content: 'Dashboard' },
           { url: '/app/rules', content: 'Manage Rules' },
+          { url: '/app/settings', content: 'Settings' },
         ]}
       />
     </BrowserRouter>
