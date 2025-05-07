@@ -15,23 +15,8 @@ export default function FormSyncStatus() {
   const { settings, shop } = useAppState();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
-  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [syncError, setSyncError] = useState(false);
-  const [actionRequired, setActionRequired] = useState(false);
-
-  useEffect(() => {
-    const setting = settings[shop];
-    if (setting) {
-      if (setting?.last_sync_time) {
-        setLastSyncTime(new Date(setting.last_sync_time));
-      }
-      setSyncError(setting?.sync_status === 'error');
-      setActionRequired(setting?.sync_status === 'need_sync');
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings[shop]]);
+  const loading = !(shop in settings);
+  const needSync = settings[shop]?.sync_status === 'need_sync' || !settings[shop]?.last_sync_time;
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -62,7 +47,7 @@ export default function FormSyncStatus() {
           <Text as="p" variant="bodyMd">Keep your product data up-to-date. View the current sync status or initiate a new sync.</Text>
         </BlockStack>
       </Box>
-      <Card roundedAbove="sm" background={actionRequired ? 'bg-surface-caution' : undefined}>
+      <Card roundedAbove="sm" background={!isSyncing && needSync ? 'bg-surface-caution' : undefined}>
         <BlockStack gap="400">
           {isSyncing ? (
             // Display progress bar when syncing
@@ -76,21 +61,14 @@ export default function FormSyncStatus() {
             // Display last sync time and Sync button when not syncing
             <InlineStack align="space-between" wrap={false} gap='200'>
               {
-                actionRequired ? (
-                  <Text variant="bodyMd" as="p" tone="critical">
-                    Synchronization required. Please sync your data.
-                  </Text>
-                ) : syncError ? (
-                  <Text variant="bodyMd" as="p" tone="critical">
-                    The last synchronization failed. Please try again. If the problem persists, contact support.
-                  </Text>
-                ) : (
-                  <Text variant="bodyMd" as="p">
-                    {formatLastSyncTime(lastSyncTime)}
-                  </Text>
-                )}
+                {
+                  'error': <Text variant="bodyMd" as="p" tone="critical">The last synchronization failed. Please try again. If the problem persists, contact support.</Text>,
+                  'need_sync': <Text variant="bodyMd" as="p" tone="critical">Synchronization required. Please sync your data.</Text>,
+                  'success': <Text variant="bodyMd" as="p">{formatLastSyncTime(settings[shop]?.last_sync_time)}</Text>,
+                }[settings[shop]?.sync_status || 'need_sync']
+              }
               <div style={{ whiteSpace: 'nowrap' }}>
-                <Button variant={actionRequired || lastSyncTime === null ? 'primary' : 'secondary'} onClick={onSyncClick} loading={isSyncing || loading}>Sync Now</Button>
+                <Button variant={needSync || !settings[shop]?.last_sync_time ? 'primary' : 'secondary'} onClick={onSyncClick} loading={isSyncing || loading}>Sync Now</Button>
               </div>
             </InlineStack>
           )}
@@ -101,8 +79,6 @@ export default function FormSyncStatus() {
 
   async function onSyncClick() {
     setIsSyncing(true);
-    setSyncError(false);
-    setActionRequired(false);
     setSyncProgress(0);
     let hasError = false;
 
@@ -133,11 +109,8 @@ export default function FormSyncStatus() {
       hasError = true;
     }
 
-    const lastSyncTime = new Date();
     setIsSyncing(false);
-    setSyncError(hasError);
-    setLastSyncTime(lastSyncTime);
-    settings[shop] = { ...settings[shop], last_sync_time: lastSyncTime.toISOString(), sync_status: hasError ? 'error' : 'success' };
+    settings[shop] = { ...settings[shop], last_sync_time: new Date().toISOString(), sync_status: hasError ? 'error' : 'success' };
   };
 
   function formatLastSyncTime(time: Date | string | null | undefined) {
@@ -155,5 +128,4 @@ export default function FormSyncStatus() {
       return 'Error formatting date.';
     }
   };
-
 }

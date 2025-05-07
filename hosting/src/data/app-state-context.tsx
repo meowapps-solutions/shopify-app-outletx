@@ -13,7 +13,7 @@ type TContext = {
 const AppStateContext = createContext<TContext | undefined>(undefined);
 
 export const AppStateProvider = ({ children }: { children: React.ReactNode }) => {
-  const shop = shopify.config.shop;
+  const shop = shopify?.config?.shop;
   if (!shop) { throw new Error('Shopify config is not available'); }
   const fetch = useFetch();
   const lastRequestRef = useRef<Record<string, Promise<void> | undefined>>({});

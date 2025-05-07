@@ -38,4 +38,8 @@ export interface Setting {
   default_outlet_collection_id?: string;
   last_sync_time?: string;
   sync_status?: 'success' | 'error' | 'need_sync';
+  notifications?: {
+    email?: string;
+    subscribed_events?: ('rule-triggered' | 'weekly-summary')[];
+  };
 }

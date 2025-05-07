@@ -10,7 +10,7 @@ export const storage = (shop: string) => ({
   },
   set: async <T extends keyof Collection>(collection: T, id: string, data: Partial<Omit<Collection[T], keyof DefaultField>>): Promise<void> => {
     const newData: typeof data & DefaultField = {...data, id, shop, updated_at: new Date().toISOString()};
-    await db.collection(collection).doc(id).set(newData, {merge: true});
+    await db.collection(collection).doc(id).set(newData);
   },
   delete: async <T extends keyof Collection>(collection: T, id: string): Promise<void> => {
     await db.collection(collection).doc(id).delete();

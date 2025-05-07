@@ -5,9 +5,12 @@ import deepCompare from '../utils/deep-compare';
 import { BlockStack, InlineGrid, Select, Text, TextField } from '@shopify/polaris';
 import AutocompleteProduct from './autocomplete-product';
 import { Rule } from '../../../functions/src/api/app/firestore/types';
+import { useAppState } from '../data/app-state-context';
 
 export default function FormTrigger({ trigger, onChange }: { trigger: Rule['trigger'][0], onChange?: (condition: Rule['trigger'][0]) => void }) {
+  const { settings, shop } = useAppState();
   const [state, setState] = useSyncedState(trigger);
+  const loading = !(shop in settings);
 
   useEffect(() => {
     if (deepCompare(state, trigger) === false && onChange) {
@@ -15,6 +18,14 @@ export default function FormTrigger({ trigger, onChange }: { trigger: Rule['trig
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
+
+  useEffect(() => {
+    if (trigger.type === 'move_to_collection' && !trigger.config.value && settings[shop]?.default_outlet_collection_id) {
+      trigger.config.value = settings[shop]?.default_outlet_collection_id;
+      setState({ ...state, config: { ...state.config, value: settings[shop]?.default_outlet_collection_id } });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trigger.type === 'move_to_collection']);
 
   const children: Record<Rule['trigger'][0]['type'], React.JSX.Element> = {
     'move_to_collection': (
@@ -26,6 +37,7 @@ export default function FormTrigger({ trigger, onChange }: { trigger: Rule['trig
             label='Search collections'
             type='collection'
             multiple={false}
+            loading={loading}
             items={trigger.config.value ? [{ id: trigger.config.value as string }] : []}
             onChange={items => {
               setState({ ...state, config: { ...state.config, value: items.length > 0 ? items[0].id : '' } });

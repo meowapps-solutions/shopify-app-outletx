@@ -1,7 +1,34 @@
-import {Rule} from '../firestore/types';
+import {Rule, Setting} from '../firestore/types';
 import {SyncData} from '../sync/types';
 
-const checkIfTargeted = (product: SyncData, rule: Rule): boolean => {
+const checkIfTargeted = (product: SyncData, rule: Rule, setting: Setting | null): boolean => {
+  // Check if the product is excluded
+  if (setting?.excluded_products?.length) {
+    const excludedProduct = setting.excluded_products.find((excluded) => excluded.id === product.product_id);
+    if (excludedProduct) {
+      if (excludedProduct.variants?.length) {
+        const isExcluded = excludedProduct.variants.some((variant) => variant === product.variant_id);
+        if (isExcluded) {
+          console.warn(`Product ${product.id} is excluded by variant ${product.variant_id} in rule ${rule.name}.`);
+          return false;
+        }
+      } else {
+        console.warn(`Product ${product.id} is excluded by rule ${rule.name}.`);
+        return false;
+      }
+    }
+  }
+
+  // Check if the collection is excluded
+  if (setting?.excluded_collections?.length) {
+    const excludedCollection = setting.excluded_collections.find((excluded) => product.collections?.includes(excluded.id));
+    if (excludedCollection) {
+      console.warn(`Product ${product.id} is excluded by collection ${excludedCollection.id} in rule ${rule.name}.`);
+      return false;
+    }
+  }
+
+  // Check with apply_scope
   if (rule.apply_scope === 'all') {
     return true;
   }

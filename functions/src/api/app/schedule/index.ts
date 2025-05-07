@@ -24,6 +24,7 @@ export default (app: core.Express) => {
       // --- Fetch Data ---
       const storageInstance = storage(shop);
       const rules = await storageInstance.getAll('shopify-rules');
+      const setting = await storageInstance.get('shopify-settings', shop);
       const products = await syncStorage.findDataByShop(shop);
       console.log(`Processing ${products.length} products against ${rules.length} rules for shop ${shop}.`);
 
@@ -49,7 +50,7 @@ export default (app: core.Express) => {
           }
 
           // Check if the product is targeted by the rule
-          if (!checkIfTargeted(product, rule)) {
+          if (!checkIfTargeted(product, rule, setting)) {
             return; // Skips rule if product is not targeted
           }
 
