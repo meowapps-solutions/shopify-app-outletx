@@ -11,7 +11,7 @@ export default function ResourcePicker({ label, type, multiple, loading, ignoreE
   const [resourceOptions, setResourceOptions] = useState<{ id: string, name: string, image?: string, product?: { totalVariants: number, hasOnlyDefaultVariant: boolean, variants: { price: string }[], totalSelectedVariants: number } }[] | undefined>(undefined);
   const { settings, shop } = useAppState();
   const excluded = ignoreExcluded ? [] : {
-    'product': (settings[shop]?.excluded_products || []).map((item: { id: string }) => item.id),
+    'product': (settings[shop]?.excluded_products || []).map((item: { id: string, variants?: string[] }) => item.variants?.length ? item.variants.map(variant => variant) : item.id).flat(),
     'collection': (settings[shop]?.excluded_collections || []).map((item: { id: string }) => item.id),
   }[type];
 
@@ -67,7 +67,7 @@ export default function ResourcePicker({ label, type, multiple, loading, ignoreE
       {state.length > 0 && (
         <Box padding='400' borderWidth='025' borderRadius='200' borderColor='border-secondary' background='bg-surface'>
           <BlockStack gap='300'>
-            {state.map(({ id }, index) => {
+            {state.map(({ id, variants }, index) => {
               const resourceOption = resourceOptions?.find(item => item.id === id);
               if (resourceOption === undefined) {
                 return (
@@ -83,19 +83,20 @@ export default function ResourcePicker({ label, type, multiple, loading, ignoreE
               }
 
               const { name, image, product } = resourceOption;
+              const hasExcluded = excluded.includes(id) || variants?.some(variant => excluded.includes(variant));
               return (
                 <>
                   {index > 0 && (<Bleed marginInline='400'><Box borderBlockStartWidth='025' borderColor='border-secondary' /></Bleed>)}
 
                   <Bleed marginBlockStart={index === 0 ? '400' : '300'} marginBlockEnd={index === state.length - 1 ? '400' : '300'} marginInline='400'>
-                    <Box paddingBlockStart={index === 0 ? '400' : '300'} paddingBlockEnd={index === state.length - 1 ? '400' : '300'} paddingInline='400' background={excluded.includes(id) ? 'bg-surface-critical' : 'bg-surface'}>
+                    <Box paddingBlockStart={index === 0 ? '400' : '300'} paddingBlockEnd={index === state.length - 1 ? '400' : '300'} paddingInline='400' background={hasExcluded ? 'bg-surface-critical' : 'bg-surface'}>
                       <InlineStack gap='400' blockAlign='center'>
                         <Thumbnail source={image || ImageIcon} alt={name} size='small' />
                         <Text as='p'>
                           {name}
                           <br></br>
                           {
-                            excluded.includes(id) && (
+                            hasExcluded && (
                               <Text as='span' tone='critical'>This resource is excluded from the settings.</Text>
                             ) ||
                             product && product.totalVariants > 1 && (
