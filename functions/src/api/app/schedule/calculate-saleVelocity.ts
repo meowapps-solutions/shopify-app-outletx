@@ -1,4 +1,4 @@
-import {SyncData} from '../sync/types';
+import {SyncData} from '../firestore/types';
 
 const calculateSaleVelocity = (
   data: SyncData['orders'],

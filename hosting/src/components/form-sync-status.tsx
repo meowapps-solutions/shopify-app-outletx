@@ -10,6 +10,7 @@ import {
 } from '@shopify/polaris';
 import { useEffect, useState } from 'react';
 import { useAppState } from '../data/app-state-context';
+import moment from 'moment';
 
 export default function FormSyncStatus() {
   const { settings, shop } = useAppState();
@@ -122,7 +123,7 @@ export default function FormSyncStatus() {
       if (isNaN(date.getTime())) {
         return 'Invalid date.';
       }
-      return `Last synced: ${date.toLocaleString()}`;
+      return `Last synced: ${moment(date).calendar()}`;
     } catch (e) {
       console.error('Error formatting date:', e); // Added error logging
       return 'Error formatting date.';

@@ -77,7 +77,7 @@ export default function RuleDetailPage() {
         'active': <Badge tone='success'>Active</Badge>,
         'inactive': <Badge>Inactive</Badge>,
       }[rule.status]}
-      backAction={{ content: 'Rules', onAction: () => navigate('/app/rules') }}
+      backAction={{ content: 'Rules', onAction: () => navigate('/app/rule') }}
       secondaryActions={ruleId !== 'new' && [
         { icon: DuplicateIcon, content: 'Duplicate', onAction: () => onDuplicateHandler() },
         ...(rule.status === 'active' && [{ content: 'Deactivate', onAction: () => setRule(prev => ({ ...prev, status: 'inactive' })) }]) || [],
@@ -257,7 +257,7 @@ export default function RuleDetailPage() {
         <button variant='primary' id='save-button' onClick={onSubmitHandler}></button>
         <button id='discard-button' onClick={() => {
           shopify.saveBar.hide('save-bar');
-          if (ruleId === 'new') { navigate('/app/rules'); }
+          if (ruleId === 'new') { navigate('/app/rule'); }
           else { setRule(compareRule); }
         }}></button>
       </ui-save-bar>
@@ -271,7 +271,7 @@ export default function RuleDetailPage() {
       rules[id] = rule;
       if (ruleId === 'new') {
         shopify.saveBar.hide('save-bar');
-        navigate(`/app/rules/${id}`);
+        navigate(`/app/rule/${id}`);
       }
     }
   }
@@ -280,12 +280,12 @@ export default function RuleDetailPage() {
     await shopify.saveBar.leaveConfirmation();
     const id = uuidv4();
     rules[id] = { ...rule, name: rule.name.endsWith('(Copy)') ? rule.name : `${rule.name} (Copy)`, status: 'inactive' };
-    navigate(`/app/rules/${id}`);
+    navigate(`/app/rule/${id}`);
   }
 
   function onDeleteHandler() {
     delete rules[ruleId];
     shopify.saveBar.hide('save-bar');
-    navigate('/app/rules');
+    navigate('/app/rule');
   }
 }

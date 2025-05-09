@@ -1,8 +1,7 @@
-import {Rule} from '../firestore/types';
-import {SyncData} from '../sync/types';
+import {Rule, Collection} from '../firestore/types';
 
 // Helper function to check if a single condition is met for a product
-const checkCondition = (product: SyncData, condition: Rule['conditions'][0]): boolean => {
+const checkCondition = (product: Collection['shopify-sync'], condition: Rule['conditions'][0]): boolean => {
   const {type, operator} = condition;
   let productValue: Rule['conditions'][0]['value'] | undefined;
   let conditionValue: Rule['conditions'][0]['value'] = condition.value;
@@ -16,7 +15,7 @@ const checkCondition = (product: SyncData, condition: Rule['conditions'][0]): bo
       productValue = Number(product.inventory?.available || 0);
       break;
     case 'time_since_launch': {
-      const launchDateStr = product.created_at; // Assuming createdAt is the launch date
+      const launchDateStr = product.product_created_at; // Assuming createdAt is the launch date
       if (!launchDateStr) return false;
       const launchTime = new Date(launchDateStr).getTime();
       const now = Date.now();

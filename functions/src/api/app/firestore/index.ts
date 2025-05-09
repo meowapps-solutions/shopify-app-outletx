@@ -19,6 +19,23 @@ export const storage = (shop: string) => ({
     const doc = await db.collection(collection).where('shop', '==', shop).get();
     return doc.docs.map((doc) => ({...doc.data() as Collection[T], id: doc.id}));
   },
+  getAllBy: async <T extends keyof Collection>(collection: T, filter: { [K in keyof Partial<Collection[T]>]: string | number | boolean | string[] | number[]; },): Promise<Collection[T][]> => {
+    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection(collection).where('shop', '==', shop);
+
+    for (const key in filter) {
+      if (Object.prototype.hasOwnProperty.call(filter, key)) {
+        const value = filter[key as keyof Collection[T]];
+        if (value) {
+          query = query.where(key, '==', value);
+        } else {
+          query = query.where(key, '!=', null);
+        }
+      }
+    }
+
+    const querySnapshot = await query.get();
+    return querySnapshot.docs.map((doc) => ({...doc.data() as Collection[T], id: doc.id}));
+  },
 });
 
 export default (app: core.Express) => {
@@ -34,8 +51,26 @@ export default (app: core.Express) => {
     const {shop} = res.locals.shopify.session as Session;
     const {collection} = req.params;
     const storageInstance = storage(shop);
-    const data = await storageInstance.getAll(collection as keyof Collection);
-    res.status(200).json(data);
+
+    const queryParams = req.query;
+    if (Object.keys(queryParams).length > 0) {
+      const filter: { [key: string]: unknown } = {};
+      for (const key in queryParams) {
+        if (Object.prototype.hasOwnProperty.call(queryParams, key)) {
+          filter[key as string] = queryParams[key] as string | string[];
+        }
+      }
+      try {
+        const data = await storageInstance.getAllBy(collection as keyof Collection, filter);
+        res.status(200).json(data);
+      } catch (error) {
+        console.error('Error fetching filtered data:', error);
+        res.status(500).json({error: 'Failed to fetch filtered data'});
+      }
+    } else {
+      const data = await storageInstance.getAll(collection as keyof Collection);
+      res.status(200).json(data);
+    }
   });
 
   app.get('/api/app/firestore/:collection/:id', async (req, res) => {

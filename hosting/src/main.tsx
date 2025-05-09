@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Routes, Route } from 'react-router';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { AppProvider as PolarisAppProvider } from '@shopify/polaris';
 import '@shopify/polaris/build/esm/styles.css';
 
@@ -10,10 +10,10 @@ import { AppNavMenu } from './components/nav-menu';
 import Index from './index';
 import NotFound from './404';
 import AppLayout from './app/_layout';
-import App from './app/index';
-import RuleDetailPage from './app/rules.id';
-import RuleListPage from './app/rules';
+import RuleListPage from './app/rule';
+import RuleDetailPage from './app/rule.id';
 import SettingsPage from './app/settings';
+import ActivityPage from './app/activity';
 
 // https://reactrouter.com/start/library/routing
 createRoot(document.getElementById('root')!).render(
@@ -23,9 +23,10 @@ createRoot(document.getElementById('root')!).render(
         <Route index element={<Index />} />
 
         <Route path="app" element={<AppLayout />}>
-          <Route index element={<App />} />
-          <Route path="rules/:ruleId" element={<RuleDetailPage />} />
-          <Route path="rules" element={<RuleListPage />} />
+          <Route index element={<RuleListPage />} />
+          <Route path="rule" element={<Navigate to={`/app${location.search}`} />} />
+          <Route path="rule/:ruleId" element={<RuleDetailPage />} />
+          <Route path="activity" element={<ActivityPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
 
@@ -35,8 +36,7 @@ createRoot(document.getElementById('root')!).render(
       <AppNavMenu
         tabs={[
           { content: 'Home', url: '/app' },
-          { url: '/app', content: 'Dashboard' },
-          { url: '/app/rules', content: 'Manage Rules' },
+          { url: '/app/activity', content: 'Recent runs' },
           { url: '/app/settings', content: 'Settings' },
         ]}
       />

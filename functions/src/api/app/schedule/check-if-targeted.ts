@@ -1,7 +1,6 @@
-import {Rule, Setting} from '../firestore/types';
-import {SyncData} from '../sync/types';
+import {Rule, Setting, Collection} from '../firestore/types';
 
-const checkIfTargeted = (product: SyncData, rule: Rule, setting: Setting | null): boolean => {
+const checkIfTargeted = (product: Collection['shopify-sync'], rule: Rule, setting: Setting | null): boolean => {
   // Check if the product is excluded
   if (setting?.excluded_products?.length) {
     const excludedProduct = setting.excluded_products.find((excluded) => excluded.id === product.product_id);

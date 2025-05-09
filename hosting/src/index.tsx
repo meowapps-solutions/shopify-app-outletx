@@ -9,7 +9,7 @@ import {
   Form,
   BlockStack,
 } from '@shopify/polaris';
-import App from './app';
+import RuleListPage from './app/rule';
 import shopifyLogo from '/shopify.svg';
 
 export default function Index() {
@@ -45,7 +45,7 @@ export default function Index() {
 
   const url = new URL(location.href);
   if (url.searchParams.get('shop')) {
-    return (<App />);
+    return (<RuleListPage />);
   }
 
   return (

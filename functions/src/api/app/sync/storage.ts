@@ -1,5 +1,8 @@
 import {db} from '../../../firebase.server';
-import {SyncData as Data, Order, ProductVariant} from './types';
+import {Order, ProductVariant} from './types';
+import {Collection} from '../firestore/types';
+
+type Data = Collection['shopify-sync'];
 
 export default {
   collection: db.collection('shopify-sync'),
@@ -27,6 +30,7 @@ export default {
           ...prevData,
           id,
           shop: data.shop,
+          updated_at: new Date().toISOString(),
           variant_id: variantId,
           orders: [
             ...(prevData?.orders || []),
@@ -48,10 +52,11 @@ export default {
       ...prevData,
       id,
       shop: data.shop,
+      updated_at: new Date().toISOString(),
       variant_id: data.id,
       price: Number(data.price),
-      created_at: data.createdAt,
       product_id: data.product.id,
+      product_created_at: data.createdAt,
       tags: data.product.tags,
       collections: data.product.collections.edges.map((edge) => edge.node.id),
       product_type: data.product.productType,

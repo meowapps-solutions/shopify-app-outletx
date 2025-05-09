@@ -3,14 +3,13 @@ import {GraphqlClient, Session} from '@shopify/shopify-api';
 import syncStorage from '../sync/storage';
 import calculateInventory from './calculate-inventory';
 import calculateSaleVelocity from './calculate-saleVelocity';
-import {SyncData, TriggeredRule, TriggeredRuleReport} from '../sync/types';
+import {Collection, Rule, SyncData} from '../firestore/types';
 import shopify, {getJwt} from '../../../shopify.server';
 import {SHOPIFY_APP_URL} from '../../../../shopify.app.json';
 
 // Helper function to check if a product is targeted by a rule with specific targeting
 import checkCondition from './check-condition';
 import checkIfTargeted from './check-if-targeted';
-import {Rule} from '../firestore/types';
 import {storage} from '../firestore';
 
 export default (app: core.Express) => {
@@ -28,10 +27,10 @@ export default (app: core.Express) => {
       const products = await syncStorage.findDataByShop(shop);
       console.log(`Processing ${products.length} products against ${rules.length} rules for shop ${shop}.`);
 
-      const matchedProducts: { product: SyncData, matchingRules: Rule[] }[] = [];
+      const matchedProducts: { product: Collection['shopify-sync'], matchingRules: Rule[] }[] = [];
 
       // --- Process Each Product ---
-      await Promise.all(products.map(async (product: SyncData) => {
+      await Promise.all(products.map(async (product: Collection['shopify-sync']) => {
         product.inventory = calculateInventory(product);
         product.sale_velocity = calculateSaleVelocity(product.orders);
 
@@ -122,7 +121,7 @@ export default (app: core.Express) => {
       return res.status(404).json({error: 'Sync data or rule not found'});
     }
 
-    const reports: TriggeredRule['reports'] = [];
+    const reports: NonNullable<SyncData['triggered_rules']>[0]['reports'] = [];
     for (const trigger of rule.trigger) {
       try {
         const triggeredRuleReport = await applyTrigger(client, syncData, trigger);
@@ -154,7 +153,7 @@ const applyTrigger = async (
   client: GraphqlClient,
   syncData: SyncData,
   trigger: Rule['trigger'][0]
-): Promise<TriggeredRuleReport> => {
+): Promise<NonNullable<SyncData['triggered_rules']>[0]['reports'][0]> => {
   console.info(`Applying trigger type ${trigger.type} to variant ${syncData.variant_id}`);
 
   if (trigger.type === 'discount' || trigger.type === 'discount_fixed_amount') {
@@ -297,8 +296,8 @@ const applyTrigger = async (
   throw new Error(`Unsupported trigger ${trigger.type}`);
 };
 
-const updateProductMetafields = async (client: GraphqlClient, syncData: SyncData, triggeredRule: TriggeredRule) => {
-  const oldValue: TriggeredRule[] = await (async () => {
+const updateProductMetafields = async (client: GraphqlClient, syncData: SyncData, triggeredRule: NonNullable<SyncData['triggered_rules']>[0]) => {
+  const oldValue: NonNullable<SyncData['triggered_rules']> = await (async () => {
     try {
       const response = await client.request(
         `#graphql

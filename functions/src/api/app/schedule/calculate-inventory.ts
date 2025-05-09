@@ -1,4 +1,4 @@
-import {SyncData} from '../sync/types';
+import {SyncData} from '../firestore/types';
 
 const calculateInventory = (data: SyncData): SyncData['inventory'] => {
   const inventoryFromOrder = data.orders?.reduce((acc, order) => {

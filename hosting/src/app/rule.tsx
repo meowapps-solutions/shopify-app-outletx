@@ -120,7 +120,7 @@ export default function RuleListPage() {
       >
         <IndexTable.Cell>
           <Text variant='bodyMd' fontWeight='medium' as='h3'>
-            <Link monochrome removeUnderline dataPrimaryLink onClick={() => navigate('/app/rules/' + id)}>
+            <Link monochrome removeUnderline dataPrimaryLink onClick={() => navigate('/app/rule/' + id)}>
               {name}
             </Link>
           </Text>
@@ -138,7 +138,8 @@ export default function RuleListPage() {
   if (!initialized) { return null; }
   return (
     <Page
-      primaryAction={<Button onClick={() => navigate('/app/rules/new')} variant='primary'>Create rule</Button>}
+      title='Rules'
+      primaryAction={<Button onClick={() => navigate('/app/rule/new')} variant='primary'>Create rule</Button>}
       secondaryActions={[{ content: 'Import', onAction: () => { shopify.modal.show('drop-zone-rule'); } }]}
     >
       <Card>
