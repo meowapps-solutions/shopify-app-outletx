@@ -81,6 +81,8 @@ export default {
 
     if (newData.triggered_rules === undefined) {
       delete newData.triggered_rules;
+    } else {
+      newData.triggered_rules_ids = newData.triggered_rules.map((rule) => rule.id);
     }
 
     return this.storeData(newData);

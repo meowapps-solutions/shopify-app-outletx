@@ -30,6 +30,7 @@ export interface Rule {
       };
     };
   }[];
+  last_triggered_at?: string;
 }
 
 export interface Setting {
@@ -90,4 +91,5 @@ export interface SyncData {
       error_message?: string,
     }[]
   }[],
+  triggered_rules_ids?: string[],
 }

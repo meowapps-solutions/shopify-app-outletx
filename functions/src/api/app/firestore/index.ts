@@ -8,7 +8,7 @@ export const storage = (shop: string) => ({
     const doc = await db.collection(collection).doc(id).get();
     return doc.exists ? {...doc.data() as Collection[T], id: doc.id} : null;
   },
-  set: async <T extends keyof Collection>(collection: T, id: string, data: Partial<Omit<Collection[T], keyof DefaultField>>): Promise<void> => {
+  set: async <T extends keyof Collection>(collection: T, id: string, data: Omit<Collection[T], keyof DefaultField>): Promise<void> => {
     const newData: typeof data & DefaultField = {...data, id, shop, updated_at: new Date().toISOString()};
     await db.collection(collection).doc(id).set(newData);
   },
@@ -25,7 +25,9 @@ export const storage = (shop: string) => ({
     for (const key in filter) {
       if (Object.prototype.hasOwnProperty.call(filter, key)) {
         const value = filter[key as keyof Collection[T]];
-        if (value) {
+        if (key === 'triggered_rules_ids') {
+          query = query.where(key, 'array-contains', value);
+        } else if (value) {
           query = query.where(key, '==', value);
         } else {
           query = query.where(key, '!=', null);

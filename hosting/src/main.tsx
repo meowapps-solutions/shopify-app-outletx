@@ -14,6 +14,7 @@ import RuleListPage from './app/rule';
 import RuleDetailPage from './app/rule.id';
 import SettingsPage from './app/settings';
 import ActivityPage from './app/activity';
+import ActivityDetailPage from './app/activity.id';
 
 // https://reactrouter.com/start/library/routing
 createRoot(document.getElementById('root')!).render(
@@ -27,6 +28,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="rule" element={<Navigate to={`/app${location.search}`} />} />
           <Route path="rule/:ruleId" element={<RuleDetailPage />} />
           <Route path="activity" element={<ActivityPage />} />
+          <Route path="activity/:syncId" element={<ActivityDetailPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
 

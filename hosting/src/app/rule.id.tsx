@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router';
-import { ActionList, ActionListItemDescriptor, Badge, Bleed, BlockStack, Box, Button, ChoiceList, Icon, InlineStack, Layout, Page, PageActions, Popover, Text, TextField, Card as PolarisCard, InlineError } from '@shopify/polaris';
-import { AlertCircleIcon, ArrowDownIcon, DuplicateIcon, PlusIcon, SettingsIcon, StatusActiveIcon, TextFontIcon, XIcon } from '@shopify/polaris-icons';
+import { ActionList, ActionListItemDescriptor, Badge, Bleed, BlockStack, Box, Button, ChoiceList, Icon, InlineStack, Layout, Page, PageActions, Popover, Text, TextField, Card as PolarisCard, InlineError, SkeletonBodyText } from '@shopify/polaris';
+import { AlertCircleIcon, ArrowDownIcon, DuplicateIcon, ExternalSmallIcon, PlusIcon, SettingsIcon, StatusActiveIcon, TextFontIcon, XIcon } from '@shopify/polaris-icons';
 import { v4 as uuidv4 } from 'uuid';
 import Card from '../components/card';
 import { useAppNavigate } from '../hooks/app-navigate';
@@ -12,11 +12,12 @@ import deepCompare from '../utils/deep-compare';
 import { Rule } from '../../../functions/src/api/app/firestore/types';
 import { useAppState } from '../data/app-state-context';
 import NotFound from '../404';
+import moment from 'moment';
 
 export default function RuleDetailPage() {
   const { ruleId } = useParams() as { ruleId: 'new' | string };
   const navigate = useAppNavigate();
-  const { rules } = useAppState();
+  const { rules, shop, getLastTriggered } = useAppState();
   const [rule, setRule] = useState<Rule>({
     name: '',
     status: 'active',
@@ -67,6 +68,15 @@ export default function RuleDetailPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ruleId, ruleId in rules, deepCompare(rules[ruleId], compareRule)]);
+
+  const [lastTriggered, setLastTriggered] = useState<Awaited<ReturnType<typeof getLastTriggered>>>([]);
+  const [loadingLastTriggered, setLoadingLastTriggered] = useState(false);
+
+  useEffect(() => {
+    setLoadingLastTriggered(true);
+    getLastTriggered(ruleId).then(setLastTriggered).finally(() => { setLoadingLastTriggered(false); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ruleId]);
 
   if (!initialized) { return null; }
   if (ruleNotFound) { return <NotFound />; }
@@ -231,7 +241,25 @@ export default function RuleDetailPage() {
           </BlockStack>
         </Layout.Section>
         <Layout.Section variant='oneThird'>
-          <Card title='Helpful tips'>Use a descriptive name to help you identify this rule later.</Card>
+          <BlockStack gap='500'>
+            <Card title='Helpful tips'>Use a descriptive name to help you identify this rule later.</Card>
+
+            <Card title='Last triggered'>
+              {loadingLastTriggered && (
+                <InlineStack gap='100' blockAlign='center'>
+                  <div style={{ width: '50px' }}><SkeletonBodyText /></div>
+                  <SkeletonBodyText />
+                </InlineStack>
+              )}
+
+              {lastTriggered.map(item => (
+                <InlineStack gap='100' blockAlign='center'>
+                  <Text as='p' variant='bodySm' tone='subdued'>{moment(item.triggered_rules?.filter(rule => rule.id === ruleId).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at).calendar()}</Text>
+                  <Button variant="plain" url={`https://admin.shopify.com/store/${shop.replace('.myshopify.com', '')}/apps/${import.meta.env.VITE_SHOPIFY_APP_HANDLE}/app/activity/${item.id}`} target="_blank" icon={ExternalSmallIcon}>{item.productVariant.product.title.concat(`: ${item.productVariant.title}`).replace(': Default Title', '')}</Button>
+                </InlineStack>
+              ))}
+            </Card>
+          </BlockStack>
         </Layout.Section>
       </Layout>
 

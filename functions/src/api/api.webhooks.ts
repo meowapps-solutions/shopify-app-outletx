@@ -5,6 +5,11 @@ import {DeliveryMethod} from '@shopify/shopify-api';
 import express from 'express';
 import shopify from '../shopify.server';
 import {cookieStorage} from './api.auth';
+import {
+  productsDeleteWebhookHandler,
+  productsUpdateWebhookHandler,
+} from './webhooks/products';
+import {ordersFulfilledWebhookHandler} from './webhooks/orders';
 
 const app = express();
 
@@ -19,6 +24,26 @@ const webhookHandlers: WebhookHandlersParam = {
     callback: async (_, shopDomain: string) => {
       await cookieStorage.deleteCookie(shopDomain);
     },
+  },
+  PRODUCTS_CREATE: {
+    deliveryMethod: DeliveryMethod.Http,
+    callbackUrl: shopify.config.webhooks.path,
+    callback: productsUpdateWebhookHandler,
+  },
+  PRODUCTS_DELETE: {
+    deliveryMethod: DeliveryMethod.Http,
+    callbackUrl: shopify.config.webhooks.path,
+    callback: productsDeleteWebhookHandler,
+  },
+  PRODUCTS_UPDATE: {
+    deliveryMethod: DeliveryMethod.Http,
+    callbackUrl: shopify.config.webhooks.path,
+    callback: productsUpdateWebhookHandler,
+  },
+  ORDERS_FULFILLED: {
+    deliveryMethod: DeliveryMethod.Http,
+    callbackUrl: shopify.config.webhooks.path,
+    callback: ordersFulfilledWebhookHandler,
   },
 };
 

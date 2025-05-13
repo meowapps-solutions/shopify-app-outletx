@@ -1,22 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Page, IndexTable, Card, useIndexResourceState, Text, BlockStack, Bleed, Badge, IndexFilters, IndexFiltersMode, ChoiceList, Box } from '@shopify/polaris';
+import { Button, Page, IndexTable, Card, useIndexResourceState, Text, BlockStack, Bleed, Badge, IndexFilters, IndexFiltersMode, ChoiceList, Box, TextField, Link } from '@shopify/polaris';
 import moment from 'moment';
 import { useAppNavigate } from '../hooks/app-navigate';
-import { useFetch } from '../hooks/http-client';
-import { Collection, SyncData } from '../../../functions/src/api/app/firestore/types';
+import { SyncData } from '../../../functions/src/api/app/firestore/types';
 import { useAppState } from '../data/app-state-context';
 
 export default function ActivityPage() {
   const navigate = useAppNavigate();
-  const fetch = useFetch();
-  const { rules } = useAppState();
+  const { rules, getProductVariant, getSyncData } = useAppState();
   const [loading, setLoading] = useState(false);
   const [initiated, setInitiated] = useState(false);
 
   const [compareResources, setCompareResources] = useState<{ id: string, rule_id: string; productVariant: { id: string; title: string; product: { title: string } }, created_at: string, reports: NonNullable<SyncData['triggered_rules']>[0]['reports'] }[]>([]);
   useEffect(() => {
     setLoading(true);
-    fetchData().then(async (data: ({ id: string } & SyncData)[]) => {
+    getSyncData().then(async data => {
       await Promise.all(data.map(async item => {
         return await Promise.all(item.triggered_rules?.map(async (rule) => {
           const { id, variant_id } = item;
@@ -30,23 +28,39 @@ export default function ActivityPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [filters, setFilters] = useState<{ error: string[] }>({ error: [] });
+  const [filters, setFilters] = useState<{ error: string[], rules: string[], startTime: string, endTime: string }>({ error: [], rules: [], startTime: '', endTime: '' });
   const appliedFilters = useMemo(() => {
+    const _appliedFilters = [];
     if (filters.error[0] === 'error') {
-      return [{
+      _appliedFilters.push({
         key: 'ErrorsFilter',
         label: 'Has errors',
         onRemove: () => setFilters(prev => ({ ...prev, error: [] })),
-      }];
+      });
     }
-    return [];
+    if (filters.rules.length > 0) {
+      _appliedFilters.push({
+        key: 'RulesFilter',
+        label: filters.rules.length === 1 && rules[filters.rules[0]]?.name || 'Rules',
+        onRemove: () => setFilters(prev => ({ ...prev, rules: [] })),
+      });
+    }
+    if (filters.startTime && filters.endTime) {
+      _appliedFilters.push({
+        key: 'TimeFilter',
+        label: `${moment(filters.startTime).format('hh:mm A MM/DD/YYYY')} - ${moment(filters.endTime).format('hh:mm A MM/DD/YYYY')}`,
+        onRemove: () => setFilters(prev => ({ ...prev, startTime: '', endTime: '' })),
+      });
+    }
+    return _appliedFilters;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   const filteredResources = useMemo(() => {
-    if (filters.error[0] === 'error') {
-      return compareResources.filter(resource => resource.reports.some(report => report.error_message));
-    }
-    return compareResources;
+    return compareResources
+      .filter(resource => filters.error[0] === 'error' ? resource.reports.some(report => report.error_message) : true)
+      .filter(resource => filters.rules.length > 0 ? filters.rules.includes(resource.rule_id) : true)
+      .filter(resource => filters.startTime && filters.endTime ? moment(resource.created_at).isBetween(filters.startTime, filters.endTime) : true);
   }, [compareResources, filters]);
 
   const { selectedResources, allResourcesSelected, handleSelectionChange } =
@@ -60,9 +74,13 @@ export default function ActivityPage() {
         position={index}
       >
         <IndexTable.Cell>
-          <Text variant='bodyMd' fontWeight='medium' as='span'>{rules[rule_id]?.name}</Text>
+          <Text variant='bodyMd' fontWeight='medium' as='span'>
+            <Link monochrome removeUnderline dataPrimaryLink onClick={() => navigate('/app/activity/' + id)}>
+              {rules[rule_id]?.name}
+            </Link>
+          </Text>
         </IndexTable.Cell>
-        <IndexTable.Cell>{`${product.title}: ${title}`}</IndexTable.Cell>
+        <IndexTable.Cell>{product.title.concat(`: ${title}`).replace(': Default Title', '')}</IndexTable.Cell>
         <IndexTable.Cell>{moment(created_at).calendar()}</IndexTable.Cell>
         <IndexTable.Cell>{reports.some(report => report.error_message) ? (
           <Badge tone='critical'>Error</Badge>
@@ -82,7 +100,7 @@ export default function ActivityPage() {
     >
       <Card>
         <Bleed marginBlockStart='400' marginInline='400'>
-          {filteredResources.length === 0 && !loading && (
+          {compareResources.length === 0 && !loading && (
             <div style={{ maxWidth: '450px', textAlign: 'center', margin: '0 auto', paddingBottom: 'var(--p-space-800)' }}>
               <img src='https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png' alt='Recent runs will appear here' />
               <BlockStack gap='200'>
@@ -104,9 +122,9 @@ export default function ActivityPage() {
                     <ChoiceList
                       titleHidden
                       title="Rules"
-                      choices={[{ label: 'Coming soon', value: '', disabled: true }]}
-                      selected={filters.error}
-                      onChange={() => { }}
+                      choices={compareResources.map((resource) => ({ label: rules[resource.rule_id]?.name, value: resource.rule_id })).filter((item, index, self) => index === self.findIndex((t) => t.value === item.value))}
+                      selected={filters.rules}
+                      onChange={selected => setFilters(prev => ({ ...prev, rules: selected }))}
                       allowMultiple
                     />
                   ),
@@ -127,14 +145,10 @@ export default function ActivityPage() {
                   key: 'TimeFilter',
                   label: 'Start time',
                   filter: (
-                    <ChoiceList
-                      titleHidden
-                      title="Start time"
-                      choices={[{ label: 'Coming soon', value: '', disabled: true }]}
-                      selected={filters.error}
-                      onChange={() => { }}
-                      allowMultiple
-                    />
+                    <>
+                      <TextField type='datetime-local' label='From' autoComplete='off' value={filters.startTime} onChange={value => setFilters(prev => ({ ...prev, startTime: value }))} />
+                      <TextField type='datetime-local' label='To' autoComplete='off' value={filters.endTime} onChange={value => setFilters(prev => ({ ...prev, endTime: value }))} />
+                    </>
                   ),
                 }]}
                 appliedFilters={appliedFilters}
@@ -167,30 +181,4 @@ export default function ActivityPage() {
       </Card>
     </Page>
   );
-
-  async function fetchData() {
-    const collection: keyof Collection = 'shopify-sync';
-    return await fetch(`/api/app/firestore/${collection}?triggered_rules`)
-      .then((response) => { if (response.ok === false) { throw response; } return response.json(); });
-  }
-
-  async function getProductVariant(variant_id: string) {
-    const query = `
-      query GetProductVariant($id: ID!) {
-        productVariant(id: $id) {
-          id
-          title
-          product {
-            title
-          }
-        }
-      }
-    `;
-    const variables = { id: variant_id };
-    return await fetch('shopify:admin/api/2025-01/graphql.json', {
-      method: 'POST',
-      body: JSON.stringify({ query: query, variables: variables }),
-    }).then((response) => response.json())
-      .then((response) => response.data.productVariant as { id: string; title: string; product: { title: string } });
-  }
 }

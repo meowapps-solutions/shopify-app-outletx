@@ -141,6 +141,12 @@ export default (app: core.Express) => {
       reports: reports,
     });
 
+    // update the last_triggered_at field in the rule
+    await storageInstance.set('shopify-rules', ruleId, {
+      ...rule,
+      last_triggered_at: new Date().toISOString(),
+    });
+
     return res.status(200).json({
       message: `Trigger applied successfully to product ${syncId} with rule ${ruleId}`,
       syncData: syncData,

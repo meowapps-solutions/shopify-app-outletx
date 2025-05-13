@@ -6,6 +6,7 @@ import ModalDropZone from '../components/modal-drop-zone';
 import { useAppNavigate } from '../hooks/app-navigate';
 import { Collection, Rule } from '../../../functions/src/api/app/firestore/types';
 import { useAppState } from '../data/app-state-context';
+import moment from 'moment';
 
 export default function RuleListPage() {
   const navigate = useAppNavigate();
@@ -109,7 +110,7 @@ export default function RuleListPage() {
     useIndexResourceState(resources as unknown as { [key: string]: unknown; }[]);
   const rowMarkup = resources.map(
     (
-      { id, name, status },
+      { id, name, last_triggered_at, status },
       index,
     ) => (
       <IndexTable.Row
@@ -125,8 +126,9 @@ export default function RuleListPage() {
             </Link>
           </Text>
         </IndexTable.Cell>
-        <IndexTable.Cell>TBD</IndexTable.Cell>
-        <IndexTable.Cell>TBD</IndexTable.Cell>
+        <IndexTable.Cell>{last_triggered_at ? moment(last_triggered_at).calendar() : (
+          <Text as='p' tone='subdued'>Not recently run</Text>
+        )}</IndexTable.Cell>
         <IndexTable.Cell>{{
           'active': <Badge tone='success'>Active</Badge>,
           'inactive': <Badge>Inactive</Badge>,
@@ -212,7 +214,6 @@ export default function RuleListPage() {
             }]}
             headings={[
               { title: 'Rule' },
-              { title: 'Trigger' },
               { title: 'Last run' },
               { title: 'Status' },
             ]}
