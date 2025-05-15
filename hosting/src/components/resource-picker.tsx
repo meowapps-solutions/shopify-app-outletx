@@ -6,7 +6,7 @@ import deepCompare from '../utils/deep-compare';
 import useSyncedState from '../hooks/use-synced-state';
 import { useAppState } from '../data/app-state-context';
 
-export default function ResourcePicker({ label, type, multiple, loading, ignoreExcluded, size, items, onChange }: { label: string, type: 'product' | 'collection', multiple?: boolean, loading?: boolean, ignoreExcluded?: boolean, size?: 'small', items: { id: string, variants?: string[] }[], onChange?: (items: { id: string, variants?: string[] }[]) => void }) {
+export default function ResourcePicker({ label, type, multiple, loading, ignoreExcluded, size, removeOnly, items, onChange }: { label: string, type: 'product' | 'collection', multiple?: boolean, loading?: boolean, ignoreExcluded?: boolean, size?: 'small', removeOnly?: boolean, items: { id: string, variants?: string[] }[], onChange?: (items: { id: string, variants?: string[] }[]) => void }) {
   const [state, setState] = useSyncedState(items);
   const [resourceOptions, setResourceOptions] = useState<{ id: string, name: string, image?: string, product?: { totalVariants: number, hasOnlyDefaultVariant: boolean, variants: { price: string }[], totalSelectedVariants: number } }[] | undefined>(undefined);
   const { settings, shop } = useAppState();
@@ -50,19 +50,21 @@ export default function ResourcePicker({ label, type, multiple, loading, ignoreE
 
   return (
     <BlockStack gap='200'>
-      <TextField
-        labelHidden
-        label={label}
-        placeholder={label}
-        prefix={<Icon source={SearchIcon} tone='base' />}
-        onChange={resourcePicker}
-        autoComplete='off'
-        connectedRight={
-          <Button onClick={() => resourcePicker()} disabled={loading}>Browse</Button>
-        }
-        loading={loading}
-        disabled={loading}
-      />
+      {removeOnly !== true && (
+        <TextField
+          labelHidden
+          label={label}
+          placeholder={label}
+          prefix={<Icon source={SearchIcon} tone='base' />}
+          onChange={resourcePicker}
+          autoComplete='off'
+          connectedRight={
+            <Button onClick={() => resourcePicker()} disabled={loading}>Browse</Button>
+          }
+          loading={loading}
+          disabled={loading}
+        />
+      )}
 
       {state.length > 0 && (
         <Box padding={(size === 'small' ? '200' : '400')} borderWidth='025' borderRadius='200' borderColor='border-secondary' background='bg-surface'>

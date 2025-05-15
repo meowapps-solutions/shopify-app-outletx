@@ -3,10 +3,12 @@ import ResourcePicker from '../components/resource-picker';
 import { useAppState } from '../data/app-state-context';
 import { Setting } from '../../../functions/src/api/app/firestore/types';
 import useSyncedState from '../hooks/use-synced-state';
+import { useAppNavigate } from '../hooks/app-navigate';
 
 export default function SettingsPage() {
   const { smUp } = useBreakpoints();
-  const { settings, shop } = useAppState();
+  const navigate = useAppNavigate();
+  const { rules, settings, shop } = useAppState();
   const initialized = shop in settings;
   const [email, setEmail] = useSyncedState(settings[shop]?.notifications?.email);
 
@@ -109,7 +111,22 @@ export default function SettingsPage() {
             </BlockStack>
           </Box>
           <Card roundedAbove="sm">
-            <ResourcePicker label='Search products' type='product' ignoreExcluded={true} onChange={items => settings[shop] = { ...settings[shop], excluded_products: items }} items={settings[shop]?.excluded_products || []} />
+            <BlockStack gap='400'>
+              <BlockStack gap='100'>
+                <Text as="p">For all rules</Text>
+                <ResourcePicker label='Search products' type='product' ignoreExcluded={true} onChange={items => settings[shop] = { ...settings[shop], excluded_products: items }} items={settings[shop]?.excluded_products || []} />
+                <Text as="p" tone='subdued' variant='bodySm'>
+                  These products apply to all rules by default. Some may still appear here if reverted or explicitly excluded in the rule settings.
+                </Text>
+              </BlockStack>
+
+              {Object.entries(rules).filter(([, rule]) => rule?.excluded_products?.length).map(([ruleId, rule]) => (
+                <BlockStack gap='100'>
+                  <Text as="p">For <Button variant='plain' onClick={() => navigate(`/app/rule/${ruleId}`)}>{rule?.name}</Button></Text>
+                  <ResourcePicker label='Search products' type='product' ignoreExcluded={true} removeOnly={true} onChange={items => { if (rules[ruleId]) { rules[ruleId] = { ...rules[ruleId], excluded_products: items }; } }} items={rule?.excluded_products || []} />
+                </BlockStack>
+              ))}
+            </BlockStack>
           </Card>
         </InlineGrid>
         {smUp ? <Divider /> : null}

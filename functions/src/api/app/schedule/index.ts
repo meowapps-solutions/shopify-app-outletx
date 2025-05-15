@@ -174,8 +174,14 @@ export default (app: core.Express) => {
       return res.status(404).json({error: 'Sync data or rule not found'});
     }
 
+    const triggeredRule = syncData.triggered_rules?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).at(-1);
+
+    if (triggeredRule?.id !== rule.id) {
+      return res.status(400).json({error: `Rule ${ruleId} is not the last triggered rule for product ${syncId}`});
+    }
+
     // Revert the trigger
-    for (const report of (syncData.triggered_rules?.find((item) => item.id === rule.id)?.reports || [])) {
+    for (const report of triggeredRule.reports) {
       try {
         await revertTrigger(client, syncData, report);
       } catch (error) {

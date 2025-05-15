@@ -245,7 +245,7 @@ export default function RuleDetailPage() {
             <Card title='Other settings'>
               <BlockStack gap='100'>
                 <Text as="p">Excluded products</Text>
-                <ResourcePicker label='Search products' type='product' size='small' items={rule.excluded_products || []} onChange={items => { setRule(prev => ({ ...prev, excluded_products: items })); }} />
+                <ResourcePicker label='Search products' type='product' size='small' ignoreExcluded={true} items={rule.excluded_products || []} onChange={items => { setRule(prev => ({ ...prev, excluded_products: items })); }} />
               </BlockStack>
             </Card>
 
