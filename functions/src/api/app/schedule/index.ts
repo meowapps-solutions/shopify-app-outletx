@@ -174,19 +174,22 @@ export default (app: core.Express) => {
       return res.status(404).json({error: 'Sync data or rule not found'});
     }
 
-    const triggeredRule = syncData.triggered_rules?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).at(-1);
+    const triggeredRules = syncData.triggered_rules?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const triggeredRuleIndex = triggeredRules?.findIndex((item) => item.id === ruleId);
 
-    if (triggeredRule?.id !== rule.id) {
-      return res.status(400).json({error: `Rule ${ruleId} is not the last triggered rule for product ${syncId}`});
+    if (triggeredRuleIndex === undefined || triggeredRuleIndex < 0) {
+      return res.status(404).json({error: 'Triggered rule not found'});
     }
 
     // Revert the trigger
-    for (const report of triggeredRule.reports) {
-      try {
-        await revertTrigger(client, syncData, report);
-      } catch (error) {
-        console.error(`Error reverting trigger ${report.type} to variant ${syncData.variant_id}:`, error);
-        return res.status(500).json({error: `Error reverting trigger ${report.type} to variant ${syncData.variant_id}: ${(error as Error).message}`});
+    for (const rule of triggeredRules?.filter((_, index) => index <= triggeredRuleIndex) || []) {
+      for (const report of rule.reports) {
+        try {
+          await revertTrigger(client, syncData, report);
+        } catch (error) {
+          console.error(`Error reverting trigger ${report.type} to variant ${syncData.variant_id}:`, error);
+          return res.status(500).json({error: `Error reverting trigger ${report.type} to variant ${syncData.variant_id}: ${(error as Error).message}`});
+        }
       }
     }
 

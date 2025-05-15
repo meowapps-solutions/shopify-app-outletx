@@ -13,7 +13,7 @@ import { useAppState } from '../data/app-state-context';
 import moment from 'moment';
 
 export default function FormSyncStatus() {
-  const { settings, shop } = useAppState();
+  const { settings, shop, getSyncData } = useAppState();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const loading = !(shop in settings);
@@ -112,6 +112,10 @@ export default function FormSyncStatus() {
 
     setIsSyncing(false);
     settings[shop] = { ...settings[shop], last_sync_time: new Date().toISOString(), sync_status: hasError ? 'error' : 'success' };
+
+    // Update sync data in the app state
+    // Todos: It not work for now because sync data updated when webhook received, it mean not sync data updated in the app state
+    getSyncData(true);
   };
 
   function formatLastSyncTime(time: Date | string | null | undefined) {

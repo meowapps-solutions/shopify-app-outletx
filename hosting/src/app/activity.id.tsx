@@ -13,10 +13,10 @@ export default function ActivityDetailPage() {
   const navigate = useAppNavigate();
   const { rules, syncData, shop, getProductVariant, getShopifyCollection } = useAppState();
   const compareData = (() => {
-    const data = syncData[syncId];
+    const data = syncData[syncId] ? { ...syncData[syncId] } : undefined;
     if (data?.triggered_rules) {
       data.triggered_rules = data.triggered_rules
-        .filter((rule) => rules[rule.id])
+        // .filter((rule) => rules[rule.id])
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
     return data;
@@ -50,7 +50,6 @@ export default function ActivityDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncData[syncId]]);
 
-
   if (!compareData || !productVariant) { return null; }
   return (
     <Page
@@ -71,7 +70,7 @@ export default function ActivityDetailPage() {
                 >
                   <BlockStack gap="050">
                     <Text as="h2" variant='headingMd'>Started at {moment(rule.created_at).format('MMMM D, YYYY [at] h:mm A')}</Text>
-                    <Text as='p' tone='subdued' variant='bodySm'>Rule: <Button variant="plain" url={`https://admin.shopify.com/store/${shop.replace('.myshopify.com', '')}/apps/${import.meta.env.VITE_SHOPIFY_APP_HANDLE}/app/rule/${rule.id}`} target="_blank">{rules[rule.id]?.name}</Button></Text>
+                    <Text as='p' tone='subdued' variant='bodySm'>Rule: {rule.id in rules && rules[rule.id] === undefined ? '[deleted]' : <Button variant="plain" url={`https://admin.shopify.com/store/${shop.replace('.myshopify.com', '')}/apps/${import.meta.env.VITE_SHOPIFY_APP_HANDLE}/app/rule/${rule.id}`} target="_blank">{rules[rule.id]?.name}</Button>}</Text>
                   </BlockStack>
                 </Box>
                 <Card roundedAbove="sm">
@@ -101,7 +100,7 @@ export default function ActivityDetailPage() {
                             : report.new_value as string,
                         <Text as='p' textDecorationLine='line-through'>{(report.type === 'discount' || report.type === 'discount_fixed_amount') ? moneyFormat(Number(report.backup_value) as number) : report.backup_value as string}</Text>,
                       ])}
-                      footerContent={<div style={{ textAlign: 'right' }}><Button variant="primary" tone="critical" disabled={index != 0} onClick={() => shopify.modal.show('revert-modal')}>Revert</Button></div>}
+                      footerContent={<div style={{ textAlign: 'right' }}><Button variant="primary" tone="critical" disabled={index != 0 || rules[rule.id] === undefined} onClick={() => shopify.modal.show('revert-modal')}>Revert</Button></div>}
                     />
                   </Bleed>
                 </Card>

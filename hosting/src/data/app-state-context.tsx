@@ -11,7 +11,7 @@ type TContext = {
   shop: string;
   cacheRef: React.MutableRefObject<Record<string, unknown | undefined>>;
   getProductVariant: (variant_id: string) => Promise<{ id: string; title: string; product: { title: string } }>;
-  getSyncData: () => Promise<Collection['shopify-sync'][]>;
+  getSyncData: (forceRefresh?: boolean) => Promise<Collection['shopify-sync'][]>;
   getLastTriggered: (ruleId: 'new' | string) => Promise<({ productVariant: Awaited<ReturnType<TContext['getProductVariant']>> } & Collection['shopify-sync'])[]>;
   getShopifyCollection: (id: string) => Promise<{ id: string; title: string; image: { url: string } }>;
 }
@@ -129,10 +129,10 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
     return response;
   }
 
-  async function getSyncData() {
+  async function getSyncData(forceRefresh = false) {
     const collection: keyof Collection = 'shopify-sync';
 
-    if (cacheRef.current[collection] === undefined) {
+    if (cacheRef.current[collection] === undefined || forceRefresh) {
       cacheRef.current[collection] = fetch(`/api/app/firestore/${collection}?triggered_rules`)
         .then((response) => { if (response.ok === false) { throw response; } return response.json(); })
         .then(buildCacheSyncData);

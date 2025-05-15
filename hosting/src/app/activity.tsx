@@ -58,11 +58,11 @@ export default function ActivityPage() {
 
   const filteredResources = useMemo(() => {
     return compareResources
-      .filter(item => rules[item.rule_id])
+      // .filter(item => rules[item.rule_id])
       .filter(resource => filters.error[0] === 'error' ? resource.reports.some(report => report.error_message) : true)
       .filter(resource => filters.rules.length > 0 ? filters.rules.includes(resource.rule_id) : true)
       .filter(resource => filters.startTime && filters.endTime ? moment(resource.created_at).isBetween(filters.startTime, filters.endTime) : true);
-  }, [compareResources, rules, filters]);
+  }, [compareResources, filters]);
 
   const { selectedResources, allResourcesSelected, handleSelectionChange } =
     useIndexResourceState(filteredResources as unknown as { [key: string]: unknown; }[]);
@@ -75,11 +75,13 @@ export default function ActivityPage() {
         position={index}
       >
         <IndexTable.Cell>
-          <Text variant='bodyMd' fontWeight='medium' as='span'>
-            <Link monochrome removeUnderline dataPrimaryLink onClick={() => navigate('/app/activity/' + id)}>
-              {rules[rule_id]?.name}
-            </Link>
-          </Text>
+          <Link monochrome removeUnderline dataPrimaryLink onClick={() => navigate('/app/activity/' + id)}>
+            {rule_id in rules && (rules[rule_id]?.name ? (
+              <Text variant='bodyMd' fontWeight='medium' as='span'>{rules[rule_id].name}</Text>
+            ) : (
+              <Text variant='bodyMd' tone='subdued' as='span'>[deleted]</Text>
+            ))}
+          </Link>
         </IndexTable.Cell>
         <IndexTable.Cell>{product.title.concat(`: ${title}`).replace(': Default Title', '')}</IndexTable.Cell>
         <IndexTable.Cell>{moment(created_at).calendar()}</IndexTable.Cell>
