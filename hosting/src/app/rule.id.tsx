@@ -242,22 +242,33 @@ export default function RuleDetailPage() {
         </Layout.Section>
         <Layout.Section variant='oneThird'>
           <BlockStack gap='500'>
-            <Card title='Helpful tips'>Use a descriptive name to help you identify this rule later.</Card>
+            <Card title='Other settings'>
+              <BlockStack gap='100'>
+                <Text as="p">Excluded products</Text>
+                <ResourcePicker label='Search products' type='product' size='small' items={rule.excluded_products || []} onChange={items => { setRule(prev => ({ ...prev, excluded_products: items })); }} />
+              </BlockStack>
+            </Card>
 
-            <Card title='Last triggered'>
-              {loadingLastTriggered && (
-                <InlineStack gap='100' blockAlign='center'>
-                  <div style={{ width: '50px' }}><SkeletonBodyText /></div>
-                  <SkeletonBodyText />
-                </InlineStack>
-              )}
+            <Card title='Helpful tips'>
+              Use a descriptive name to help you identify this rule later.
 
-              {lastTriggered.map(item => (
-                <InlineStack gap='100' blockAlign='center'>
-                  <Text as='p' variant='bodySm' tone='subdued'>{moment(item.triggered_rules?.filter(rule => rule.id === ruleId).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at).calendar()}</Text>
-                  <Button variant="plain" url={`https://admin.shopify.com/store/${shop.replace('.myshopify.com', '')}/apps/${import.meta.env.VITE_SHOPIFY_APP_HANDLE}/app/activity/${item.id}`} target="_blank" icon={ExternalSmallIcon}>{item.productVariant.product.title.concat(`: ${item.productVariant.title}`).replace(': Default Title', '')}</Button>
-                </InlineStack>
-              ))}
+              <Text as='p' variant='headingMd'>Last triggered</Text>
+
+              <BlockStack gap='200'>
+                {loadingLastTriggered ? (
+                  <InlineStack gap='100' blockAlign='center'>
+                    <div style={{ width: '50px' }}><SkeletonBodyText /></div>
+                    <SkeletonBodyText />
+                  </InlineStack>
+                ) : lastTriggered.length ? lastTriggered.map(item => (
+                  <InlineStack gap='100' blockAlign='center'>
+                    <Text as='p' variant='bodySm' tone='subdued'>{moment(item.triggered_rules?.filter(rule => rule.id === ruleId).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at).calendar()}</Text>
+                    <Button variant="plain" url={`https://admin.shopify.com/store/${shop.replace('.myshopify.com', '')}/apps/${import.meta.env.VITE_SHOPIFY_APP_HANDLE}/app/activity/${item.id}`} target="_blank" icon={ExternalSmallIcon}>{item.productVariant.product.title.concat(`: ${item.productVariant.title}`).replace(': Default Title', '')}</Button>
+                  </InlineStack>
+                )) : (
+                  <Text as='p' tone='subdued'>This rule has not been triggered yet.</Text>
+                )}
+              </BlockStack>
             </Card>
           </BlockStack>
         </Layout.Section>
@@ -270,7 +281,7 @@ export default function RuleDetailPage() {
 
       <ui-modal id="delete-rule-modal">
         <Box padding="400">
-          <p>Deleting <strong>{rule.name}</strong> is permanent and cannot be undone.  Are you sure you want to proceed?</p>
+          <p>Deleting <strong>{rule.name}</strong> is permanent and cannot be undone. Are you sure you want to proceed?</p>
         </Box>
         <ui-title-bar title={`Delete ${rule.name}?`}>
           <button variant="primary" tone="critical" onClick={async () => {

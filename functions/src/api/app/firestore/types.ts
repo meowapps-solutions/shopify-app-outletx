@@ -31,6 +31,7 @@ export interface Rule {
     };
   }[];
   last_triggered_at?: string;
+  excluded_products?: { id: string; variants?: string[] }[];
 }
 
 export interface Setting {

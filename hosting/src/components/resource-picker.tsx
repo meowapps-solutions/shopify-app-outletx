@@ -6,7 +6,7 @@ import deepCompare from '../utils/deep-compare';
 import useSyncedState from '../hooks/use-synced-state';
 import { useAppState } from '../data/app-state-context';
 
-export default function ResourcePicker({ label, type, multiple, loading, ignoreExcluded, items, onChange }: { label: string, type: 'product' | 'collection', multiple?: boolean, loading?: boolean, ignoreExcluded?: boolean, items: { id: string, variants?: string[] }[], onChange?: (items: { id: string, variants?: string[] }[]) => void }) {
+export default function ResourcePicker({ label, type, multiple, loading, ignoreExcluded, size, items, onChange }: { label: string, type: 'product' | 'collection', multiple?: boolean, loading?: boolean, ignoreExcluded?: boolean, size?: 'small', items: { id: string, variants?: string[] }[], onChange?: (items: { id: string, variants?: string[] }[]) => void }) {
   const [state, setState] = useSyncedState(items);
   const [resourceOptions, setResourceOptions] = useState<{ id: string, name: string, image?: string, product?: { totalVariants: number, hasOnlyDefaultVariant: boolean, variants: { price: string }[], totalSelectedVariants: number } }[] | undefined>(undefined);
   const { settings, shop } = useAppState();
@@ -65,17 +65,17 @@ export default function ResourcePicker({ label, type, multiple, loading, ignoreE
       />
 
       {state.length > 0 && (
-        <Box padding='400' borderWidth='025' borderRadius='200' borderColor='border-secondary' background='bg-surface'>
-          <BlockStack gap='300'>
+        <Box padding={(size === 'small' ? '200' : '400')} borderWidth='025' borderRadius='200' borderColor='border-secondary' background='bg-surface'>
+          <BlockStack gap={(size === 'small' ? '200' : '300')}>
             {state.map(({ id, variants }, index) => {
               const resourceOption = resourceOptions?.find(item => item.id === id);
               if (resourceOption === undefined) {
                 return (
                   <>
-                    {index > 0 && (<Bleed marginInline='400'><Box borderBlockStartWidth='025' borderColor='border-secondary' /></Bleed>)}
+                    {index > 0 && (<Bleed marginInline={(size === 'small' ? '200' : '400')}><Box borderBlockStartWidth='025' borderColor='border-secondary' /></Bleed>)}
 
-                    <InlineStack gap='400' blockAlign='center'>
-                      <SkeletonThumbnail size='small' />
+                    <InlineStack gap={(size === 'small' ? '200' : '400')} blockAlign='center'>
+                      {size !== 'small' && (<SkeletonThumbnail size='small' />)}
                       <div style={{ width: '30%' }}><SkeletonBodyText lines={1} /></div>
                     </InlineStack>
                   </>
@@ -86,12 +86,12 @@ export default function ResourcePicker({ label, type, multiple, loading, ignoreE
               const hasExcluded = excluded.includes(id) || variants?.some(variant => excluded.includes(variant));
               return (
                 <>
-                  {index > 0 && (<Bleed marginInline='400'><Box borderBlockStartWidth='025' borderColor='border-secondary' /></Bleed>)}
+                  {index > 0 && (<Bleed marginInline={(size === 'small' ? '200' : '400')}><Box borderBlockStartWidth='025' borderColor='border-secondary' /></Bleed>)}
 
-                  <Bleed marginBlockStart={index === 0 ? '400' : '300'} marginBlockEnd={index === state.length - 1 ? '400' : '300'} marginInline='400'>
-                    <Box paddingBlockStart={index === 0 ? '400' : '300'} paddingBlockEnd={index === state.length - 1 ? '400' : '300'} paddingInline='400' background={hasExcluded ? 'bg-surface-critical' : 'bg-surface'}>
-                      <InlineStack gap='400' blockAlign='center'>
-                        <Thumbnail source={image || ImageIcon} alt={name} size='small' />
+                  <Bleed marginBlockStart={index === 0 ? (size === 'small' ? '200' : '400') : (size === 'small' ? '200' : '300')} marginBlockEnd={index === state.length - 1 ? (size === 'small' ? '200' : '400') : (size === 'small' ? '200' : '300')} marginInline={(size === 'small' ? '200' : '400')}>
+                    <Box paddingBlockStart={index === 0 ? (size === 'small' ? '200' : '400') : (size === 'small' ? '200' : '300')} paddingBlockEnd={index === state.length - 1 ? (size === 'small' ? '200' : '400') : (size === 'small' ? '200' : '300')} paddingInline={(size === 'small' ? '200' : '400')} background={hasExcluded ? 'bg-surface-critical' : undefined}>
+                      <InlineStack gap={(size === 'small' ? '200' : '400')} blockAlign='center'>
+                        {size !== 'small' && (<Thumbnail source={image || ImageIcon} alt={name} size='small' />)}
                         <Text as='p'>
                           {name}
                           <br></br>
@@ -109,7 +109,7 @@ export default function ResourcePicker({ label, type, multiple, loading, ignoreE
                         </Text>
 
                         <div style={{ marginLeft: 'auto' }}>
-                          <InlineStack gap='500'>
+                          <InlineStack gap={size === 'small' ? '200' : '500'}>
                             {product && product.totalVariants > 1 && (
                               <Button variant='plain' onClick={() => {
                                 resourcePicker(undefined, { query: `id:${id.replace('gid://shopify/Product/', '')}` });

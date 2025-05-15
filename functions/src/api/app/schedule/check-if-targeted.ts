@@ -27,6 +27,11 @@ const checkIfTargeted = (product: Collection['shopify-sync'], rule: Rule, settin
     }
   }
 
+  if (rule.excluded_products && rule.excluded_products.find((excluded) => (excluded.variants || []).includes(product.variant_id))) {
+    console.warn(`Product ${product.id} is excluded by variant ${product.variant_id} in rule ${rule.name}.`);
+    return false;
+  }
+
   // Check with apply_scope
   if (rule.apply_scope === 'all') {
     return true;

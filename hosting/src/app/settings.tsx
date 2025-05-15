@@ -104,7 +104,7 @@ export default function SettingsPage() {
                 Excluded products
               </Text>
               <Text as="p" variant="bodyMd">
-                Hide products (including reverted ones) to prevent accidental selection and exclude them from system operations.
+                Hide products to prevent accidental selection and exclude them from system operations.
               </Text>
             </BlockStack>
           </Box>

@@ -58,10 +58,11 @@ export default function ActivityPage() {
 
   const filteredResources = useMemo(() => {
     return compareResources
+      .filter(item => rules[item.rule_id])
       .filter(resource => filters.error[0] === 'error' ? resource.reports.some(report => report.error_message) : true)
       .filter(resource => filters.rules.length > 0 ? filters.rules.includes(resource.rule_id) : true)
       .filter(resource => filters.startTime && filters.endTime ? moment(resource.created_at).isBetween(filters.startTime, filters.endTime) : true);
-  }, [compareResources, filters]);
+  }, [compareResources, rules, filters]);
 
   const { selectedResources, allResourcesSelected, handleSelectionChange } =
     useIndexResourceState(filteredResources as unknown as { [key: string]: unknown; }[]);
