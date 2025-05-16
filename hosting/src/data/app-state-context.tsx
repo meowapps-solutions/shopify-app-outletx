@@ -65,11 +65,16 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
 
   function proxyHandler<T extends keyof Collection>(collection: T): ProxyHandler<Record<string, Collection[T] | undefined>> {
     const fetchIfNeeded = (target: Record<string, Collection[T] | undefined>, id: string) => {
+      const cacheKey = `${collection}_${id}`;
+
+      if (cacheRef.current[cacheKey] === undefined) {
+        cacheRef.current[cacheKey] = fetch(`/api/app/firestore/${collection}/${id}`)
+          .then((response) => { if (response.ok === false) { throw response; } return response.json(); });
+      }
+
       if (!(id in target) && !(`${collection}_${id}` in deletedRef.current)) {
         setLoading(true);
-        fetch(`/api/app/firestore/${collection}/${id}`)
-          .then((response) => { if (response.ok === false) { throw response; } return response.json(); })
-          .then(response => { target[id] = response; })
+        (cacheRef.current[cacheKey] as Promise<Collection[T]>).then(response => { target[id] = response; })
           .catch((error) => { console.error(error); target[id] = undefined; })
           .finally(() => { setLoading(false); });
       }
